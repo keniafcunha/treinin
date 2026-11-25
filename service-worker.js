@@ -1,13 +1,30 @@
-const CACHE="meu-treino-perfis-v3";
+/* Troque o número da versão sempre que atualizar os arquivos do app */
+const CACHE="meu-treino-v4";
+const ASSETS=["./","index.html","style.css","script.js","manifest.json","icon-192.png","icon-512.png"];
 
-const ASSETS=["./","./index.html","./style.css","./script.js","./manifest.json","./icon-192.png","./icon-512.png"];
+self.addEventListener("install",e=>{
+    self.skipWaiting();
+    e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}));
+});
 
-self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+self.addEventListener("activate",e=>{
+    e.waitUntil(
+        caches.keys()
+            .then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+            .then(()=>self.clients.claim())
+    );
+});
 
-self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
+/* Rede primeiro (sempre pega a versão nova); cache só se estiver sem internet */
+self.addEventListener("fetch",e=>{
+    const req=e.request;
+    if(req.method!=="GET"||new URL(req.url).origin!==location.origin)return;
 
-self.addEventListener("fetch",e=>{if(e.request.method!=="GET")
-
-return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(response=>{if(response.ok){let copy=response.clone();
-
-caches.open(CACHE).then(c=>c.put(e.request,copy))}return response}).catch(()=>caches.match("./index.html"))))});
+    e.respondWith(
+        fetch(req,{cache:"no-cache"}).then(res=>{
+            const copy=res.clone();
+            caches.open(CACHE).then(c=>c.put(req,copy));
+            return res;
+        }).catch(()=>caches.match(req).then(r=>r||caches.match("index.html")))
+    );
+});
