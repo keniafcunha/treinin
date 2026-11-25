@@ -32,13 +32,13 @@ const THEMES={
     },
     friend:{ /* Naty: rosa + verde água */
         primary:"#d878a5",
-        secondary:"#6fd3c1",
+        secondary:"#e6b891",
         dark:"#b3447c",
         soft:"#fde8f1",
         border:"#e9c9d9",
         track:"#f4e5ec",
         bg:"linear-gradient(160deg,#fff0f6 0%,#e6faf6 100%)",
-        meta:"#d878a5"
+        meta:"#fbede0"
     }
 };
 
