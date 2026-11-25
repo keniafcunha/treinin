@@ -30,7 +30,7 @@ input,select{width:100%;background:#fff;border:1px solid var(--line);border-radi
 .start-small{background:var(--soft);color:var(--deeper);padding:8px 10px;border-radius:10px;font-size:12px;font-weight:700}
 /* ===== MENU INFERIOR (6 itens) ===== */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#ffffffed;backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 2px calc(8px + env(safe-area-inset-bottom))}
-.nav{background:transparent;color:#a99aa2;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;flex:1;min-width:0;padding:0 2px}.nav span{font-size:22px;line-height:24px;height:24px;display:flex;align-items:center;justify-content:center}.nav svg{width:22px;height:22px;display:block}.nav.active{color:var(--deep);font-weight:800}
+.nav{background:transparent;color:#a99aa2;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;flex:1;min-width:0;padding:0 2px}.nav span{font-size:22px;line-height:24px;height:24px;display:flex;align-items:center;justify-content:center}.nav svg{width:22px;height:22px;display:block}.nav.active{color:var(--deep);font-weight:800}
 .profile-card{text-align:center;background:white;border-radius:20px;padding:22px;margin:15px 0}.avatar{margin:auto;width:60px;height:60px;background:var(--soft);border-radius:50%;display:grid;place-items:center;color:var(--deep);font-size:30px}
 .settings{background:white;border-radius:18px;padding:8px 15px}.setting{display:block;width:100%;text-align:left;background:white;padding:16px 0;border-bottom:1px solid var(--line);color:var(--ink);font-weight:650}.file-setting{position:relative;overflow:hidden}.file-setting input{position:absolute;inset:0;opacity:0}
 .field-label{display:block;margin:18px 0 8px;font-weight:700}.chart-card{background:white;border-radius:18px;padding:12px;margin:12px 0;overflow:hidden}.chart-card canvas{width:100%;display:block}
@@ -47,6 +47,19 @@ input,select{width:100%;background:#fff;border:1px solid var(--line);border-radi
 .auto{font-size:12px;color:var(--muted);display:flex;gap:7px;justify-content:center;align-items:center;margin-top:12px}.auto input{width:17px;height:17px;accent-color:var(--pink)}
 #toast{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#342a31;color:white;border-radius:20px;padding:10px 16px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:70}#toast.show{opacity:1}
 .history-card h3{font-size:15px}.history-details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;font-size:12px;color:var(--muted)}
+/* ===== PESO ===== */
+.weight-big{font-size:46px;font-weight:800;color:var(--deep);line-height:1.1;margin:4px 0}.weight-big em{font-style:normal;font-size:18px;color:var(--muted);font-weight:600}
+.weight-goal-text{margin:10px 0 12px;font-weight:600;color:var(--deeper)}
+.weight-day{margin:6px 0 12px;font-size:16px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.cal-head b{text-transform:capitalize;font-size:16px;color:var(--ink)}.cal-head .soft{width:40px;height:40px;padding:0;font-size:22px}.cal-head .soft:disabled{opacity:.35}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-grid em{font-style:normal;font-size:10px;font-weight:700;color:var(--label);text-align:center;padding:2px 0 4px}
+.cal-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:48px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:3px 0;color:var(--ink)}
+.cal-day b{font-size:13px}.cal-day i{font-style:normal;font-size:9px;font-weight:700;color:var(--deeper);min-height:11px}
+.cal-day.has{background:var(--soft)}
+.cal-day.today{border-color:var(--pink);border-width:2px}
+.cal-day.sel{background:linear-gradient(135deg,var(--pink),var(--accent));border-color:transparent;color:#fff}.cal-day.sel i{color:#fff}
+.cal-day:disabled{opacity:.3;cursor:default}
 /* ===== ÁGUA ===== */
 .water-card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:var(--shadow)}
 .water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--pink);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--softer)}
@@ -62,6 +75,7 @@ input,select{width:100%;background:#fff;border:1px solid var(--line);border-radi
 .water-day .col{width:100%;max-width:30px;height:90px;display:flex;align-items:flex-end;background:var(--track);border-radius:8px;overflow:hidden;margin-bottom:4px}
 .water-day .col i{display:block;width:100%;background:linear-gradient(180deg,var(--accent),var(--pink));border-radius:8px}
 .water-day.goal .col{outline:2px solid var(--accent)}.water-day b{color:var(--ink);font-size:10px}
+@media(max-width:380px){.nav{font-size:9px}.nav svg{width:20px;height:20px}}
 @media(min-width:600px){main{padding:0 24px}.filter-grid{grid-template-columns:repeat(3,1fr)}.hero{padding:28px}.bottom-nav{max-width:680px;left:50%;transform:translateX(-50%);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0}}
 /* ===== PERFIL ===== */
 .profile-switch-card{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 14px;padding:11px 13px;background:#fff;border:1px solid var(--line);border-radius:16px;color:var(--ink);text-align:left;box-shadow:var(--shadow)}
