@@ -1,91 +1,46 @@
-*{box-sizing:border-box}
-/* ===== TEMA PADRÃO (Naty): rosa + pêssego/laranja suave ===== */
-:root{--pink:#e987b2;--accent:#ffa987;--pale:#fff5f9;--pale2:#fff1e8;--ink:#332a30;--muted:#887780;--line:#f0dce6;--white:#fff;--label:#b56b91;--deep:#c66594;--deeper:#b45f8b;--soft:#fbe3ee;--softer:#fff0f6;--track:#f3dce7;--bar:#efb1ce;--hero1:#f4a8c8;--hero2:#ffb48f;--shadow:0 8px 28px #d99ab51c}
-/* ===== TEMA Kenia: lilás + azul bebê ===== */
-body[data-theme="admin"]{--pink:#a98be0;--accent:#8ecbf0;--pale:#f6f1ff;--pale2:#eaf5ff;--line:#e2d9f3;--label:#7f69b3;--deep:#7a5cc0;--deeper:#6a4fb0;--soft:#ece4fb;--softer:#f3eefc;--track:#e3e9f8;--bar:#b9a6ea;--hero1:#b79ce8;--hero2:#8ecbf0;--shadow:0 8px 28px #9a86d21c}
-body{margin:0;background:linear-gradient(160deg,var(--pale),var(--pale2)) fixed;min-height:100vh;color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:calc(82px + env(safe-area-inset-bottom));-webkit-tap-highlight-color:transparent}
-button,input,select{font:inherit}button{cursor:pointer;border:0}h1,h2,h3,p{margin-top:0}h1{font-size:29px;margin:4px 0;font-weight:800;letter-spacing:-.6px}h1 span{color:var(--pink)}h2{font-size:23px;margin:0 0 8px}h3{font-size:17px;margin:0}
-small,.eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:800;color:var(--label)}
-.top{display:flex;justify-content:space-between;align-items:center;padding:calc(20px + env(safe-area-inset-top)) 20px 18px}.top p{margin:0;color:var(--muted);font-size:13px}
-.round{width:44px;height:44px;border-radius:50%;background:white;color:var(--pink);font-size:20px;box-shadow:var(--shadow)}
-main{max-width:680px;margin:auto;padding:0 16px}.page{display:none}.page.active{display:block}
-.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));border-radius:25px;padding:22px;color:#fff;box-shadow:var(--shadow)}.hero .eyebrow{color:#fffc}.hero h2{font-size:25px;margin:8px 0}.hero p{font-size:13px;color:#fffde8;margin-bottom:18px}
-.primary{background:linear-gradient(135deg,var(--pink),var(--accent));color:white;border-radius:15px;padding:13px 18px;font-weight:750;min-height:46px}.hero .primary{background:#fff;color:var(--deeper);width:100%}
-.section-head{display:flex;align-items:center;justify-content:space-between;margin:24px 2px 12px}.section-head span{font-size:12px;color:var(--muted)}
-.soft{background:var(--soft);color:var(--deeper);border-radius:13px;padding:10px 14px;font-weight:700}
-.week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.week-day{background:#fff;border-radius:14px;text-align:center;padding:10px 0;font-size:11px;color:var(--muted)}.week-day b{display:block;font-size:16px;color:var(--ink);margin:5px 0}.week-day.done{background:var(--bar);color:#fff}.week-day.done b{color:#fff}.week-day.today{outline:2px solid var(--pink)}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.stats article{background:white;border:1px solid var(--line);border-radius:18px;padding:17px;box-shadow:var(--shadow)}.stats strong{display:block;font-size:27px;color:var(--deep)}.stats span{font-size:12px;color:var(--muted)}
-.quote{margin:16px 0;background:var(--softer);border-radius:16px;padding:16px;color:var(--deeper);font-size:13px}.quote span{float:right}.muted{color:var(--muted);font-size:13px}
-.filters{background:white;border-radius:18px;padding:12px;border:1px solid var(--line)}
-input,select{width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--ink);min-width:0;outline-color:var(--pink)}
-.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.filter-grid select{font-size:12px;padding:10px 7px}.filter-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:11px;color:var(--muted)}
-.textbtn{background:transparent;color:var(--deeper);font-weight:700;padding:8px}
-.workout-card,.exercise-card,.history-card{background:white;border:1px solid var(--line);border-radius:18px;padding:15px;margin:10px 0;box-shadow:var(--shadow)}
-.workout-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.workout-head h3{font-size:16px}.workout-head p{font-size:12px;color:var(--muted);margin:4px 0}
-.mini{font-size:11px;background:var(--softer);color:var(--deeper);padding:5px 8px;border-radius:9px}
-.exercise-row{display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.exercise-row:last-child{border:0}
-.exercise-icon{width:38px;height:38px;border-radius:13px;background:var(--softer);display:grid;place-items:center;color:var(--deep);font-size:20px;flex-shrink:0}
-.exercise-info{flex:1;min-width:0}.exercise-info b{display:block;font-size:14px}.exercise-info small{letter-spacing:0;font-size:11px;color:var(--muted);font-weight:500}
-.star{background:none;color:var(--bar);font-size:21px;padding:4px}.star.on{color:var(--pink)}
-.start-small{background:var(--soft);color:var(--deeper);padding:8px 10px;border-radius:10px;font-size:12px;font-weight:700}
-/* ===== MENU INFERIOR (6 itens) ===== */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#ffffffed;backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 2px calc(8px + env(safe-area-inset-bottom))}
-.nav{background:transparent;color:#a99aa2;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;flex:1;min-width:0;padding:0 2px}.nav span{font-size:22px;line-height:24px;height:24px;display:flex;align-items:center;justify-content:center}.nav svg{width:22px;height:22px;display:block}.nav.active{color:var(--deep);font-weight:800}
-.profile-card{text-align:center;background:white;border-radius:20px;padding:22px;margin:15px 0}.avatar{margin:auto;width:60px;height:60px;background:var(--soft);border-radius:50%;display:grid;place-items:center;color:var(--deep);font-size:30px}
-.settings{background:white;border-radius:18px;padding:8px 15px}.setting{display:block;width:100%;text-align:left;background:white;padding:16px 0;border-bottom:1px solid var(--line);color:var(--ink);font-weight:650}.file-setting{position:relative;overflow:hidden}.file-setting input{position:absolute;inset:0;opacity:0}
-.field-label{display:block;margin:18px 0 8px;font-weight:700}.chart-card{background:white;border-radius:18px;padding:12px;margin:12px 0;overflow:hidden}.chart-card canvas{width:100%;display:block}
-.bars{display:flex;gap:8px;align-items:end;height:110px;background:white;border-radius:18px;padding:15px}.bar-item{flex:1;text-align:center;font-size:10px;color:var(--muted)}.bar{background:linear-gradient(180deg,var(--accent),var(--pink));border-radius:7px 7px 2px 2px;min-height:4px;margin-bottom:5px}
-.session-page{padding-bottom:20px}.session-top{display:flex;align-items:center;gap:12px;margin:8px 0 16px}.session-top>div{flex:1}.session-top h2{font-size:20px;margin:3px 0}
-.back{background:white;border-radius:13px;width:42px;height:42px;font-size:30px;color:var(--deep)}
-.progress-track{height:7px;background:var(--track);border-radius:20px;overflow:hidden}.progress-track div{height:100%;background:linear-gradient(90deg,var(--pink),var(--accent));width:0;transition:width .2s}
-.session-count{font-size:12px;color:var(--muted)}.session-exercise{background:white;border-radius:22px;padding:17px;margin:12px 0}.session-exercise h3{font-size:21px;margin:5px 0}.exercise-meta{font-size:12px;color:var(--muted);margin-bottom:16px}
-.set-row{display:grid;grid-template-columns:28px 1fr 1fr 36px;gap:7px;align-items:center;margin:8px 0}.set-row label{font-size:12px;color:var(--muted)}.set-row input{padding:10px 5px;text-align:center;font-size:14px}.set-row input[type=checkbox]{width:25px;height:25px;accent-color:var(--pink)}.set-row.done{background:var(--softer);border-radius:12px;padding:5px}
-.session-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px}.session-nav button{width:100%}
-.modal{position:fixed;inset:0;background:#33212c70;z-index:50;display:grid;place-items:center;padding:20px}.modal.hidden{display:none}.modal-card{width:min(100%,380px);background:white;border-radius:26px;padding:24px;text-align:center;position:relative}.close{position:absolute;right:15px;top:10px;background:transparent;font-size:27px;color:var(--muted)}
-.timer{font-size:55px;font-weight:800;color:var(--deep);margin:14px 0}.timer-presets{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}.timer-presets button{background:var(--softer);color:var(--deeper);padding:9px;border-radius:10px;font-size:12px}
-.timer-controls{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:6px;margin:14px 0}.timer-controls button{padding:10px 4px;font-size:12px}
-.auto{font-size:12px;color:var(--muted);display:flex;gap:7px;justify-content:center;align-items:center;margin-top:12px}.auto input{width:17px;height:17px;accent-color:var(--pink)}
-#toast{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#342a31;color:white;border-radius:20px;padding:10px 16px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:70}#toast.show{opacity:1}
-.history-card h3{font-size:15px}.history-details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;font-size:12px;color:var(--muted)}
-/* ===== PESO ===== */
-.weight-big{font-size:46px;font-weight:800;color:var(--deep);line-height:1.1;margin:4px 0}.weight-big em{font-style:normal;font-size:18px;color:var(--muted);font-weight:600}
-.weight-goal-text{margin:10px 0 12px;font-weight:600;color:var(--deeper)}
-.weight-day{margin:6px 0 12px;font-size:16px}
-.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.cal-head b{text-transform:capitalize;font-size:16px;color:var(--ink)}.cal-head .soft{width:40px;height:40px;padding:0;font-size:22px}.cal-head .soft:disabled{opacity:.35}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal-grid em{font-style:normal;font-size:10px;font-weight:700;color:var(--label);text-align:center;padding:2px 0 4px}
-.cal-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:48px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:3px 0;color:var(--ink)}
-.cal-day b{font-size:13px}.cal-day i{font-style:normal;font-size:9px;font-weight:700;color:var(--deeper);min-height:11px}
-.cal-day.has{background:var(--soft)}
-.cal-day.today{border-color:var(--pink);border-width:2px}
-.cal-day.sel{background:linear-gradient(135deg,var(--pink),var(--accent));border-color:transparent;color:#fff}.cal-day.sel i{color:#fff}
-.cal-day:disabled{opacity:.3;cursor:default}
-/* ===== ÁGUA ===== */
-.water-card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:var(--shadow)}
-.water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--pink);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--softer)}
-.water-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--accent),var(--pink));transition:height .6s ease}
-.water-glass span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--deeper);text-shadow:0 0 6px #fff}
-.water-total{font-size:30px;font-weight:800;color:var(--deep);margin:4px 0}
-.water-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 10px}
-.water-quick button{background:linear-gradient(135deg,var(--pink),var(--accent));color:#fff;border-radius:14px;padding:13px;font-weight:700}
-.water-custom{display:flex;gap:8px;margin-bottom:10px}.water-custom .primary{white-space:nowrap;padding:0 16px}
-.water-actions{display:flex;gap:8px}.water-actions button{flex:1}
-.water-week{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:140px}
-.water-day{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:11px;color:var(--muted)}
-.water-day .col{width:100%;max-width:30px;height:90px;display:flex;align-items:flex-end;background:var(--track);border-radius:8px;overflow:hidden;margin-bottom:4px}
-.water-day .col i{display:block;width:100%;background:linear-gradient(180deg,var(--accent),var(--pink));border-radius:8px}
-.water-day.goal .col{outline:2px solid var(--accent)}.water-day b{color:var(--ink);font-size:10px}
-@media(max-width:380px){.nav{font-size:9px}.nav svg{width:20px;height:20px}}
-@media(min-width:600px){main{padding:0 24px}.filter-grid{grid-template-columns:repeat(3,1fr)}.hero{padding:28px}.bottom-nav{max-width:680px;left:50%;transform:translateX(-50%);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0}}
-/* ===== PERFIL ===== */
-.profile-switch-card{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 14px;padding:11px 13px;background:#fff;border:1px solid var(--line);border-radius:16px;color:var(--ink);text-align:left;box-shadow:var(--shadow)}
-.profile-mini,.choice-avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:var(--soft);color:var(--deep);font-size:22px;flex-shrink:0}
-.profile-switch-card>span:nth-child(2){flex:1;font-size:13px;color:var(--muted)}.profile-switch-card b{color:var(--ink)}.switch-link{color:var(--deeper);font-size:12px;font-weight:800}
-.profile-picker{position:fixed;inset:0;z-index:100;background:#38273370;display:grid;place-items:center;padding:20px}.profile-picker.hidden{display:none}
-.picker-card{width:min(100%,400px);background:#fff8fb;border-radius:26px;padding:24px 18px;box-shadow:0 18px 50px #2e172533}.picker-card h2{margin:8px 0}.picker-card>small{display:block}
-.profile-choice{display:flex;align-items:center;gap:12px;width:100%;background:#fff;border:1px solid #eadff0;border-radius:17px;padding:13px;margin-top:10px;text-align:left;color:var(--ink)}
-.profile-choice>span:nth-child(2){flex:1}.profile-choice b{display:block;font-size:15px}.profile-choice small{display:block;letter-spacing:0;font-size:11px;font-weight:500;color:var(--muted);margin-top:2px}
-/* avatares fixos no seletor: Kenia lilás/azul, Naty rosa/pêssego */
-.profile-choice[data-profile="admin"] .choice-avatar{background:linear-gradient(135deg,#ece4fb,#dff1fc);color:#7a5cc0}
-.profile-choice[data-profile="friend"] .choice-avatar{background:linear-gradient(135deg,#fde8f1,#ffe8d9);color:#c66594}
-.choice-arrow{font-size:26px;color:#a99aa2}
+{
+
+"name": "Meu Treino Fitness",
+
+"short_name": "Meu Treino",
+
+"description": "Sua rotina fitness, simples e organizada.",
+
+"start_url": "./",
+
+"scope": "./",
+
+"display": "standalone",
+
+"background_color": "#fff5f9",
+
+"theme_color": "#f4a8c8",
+
+"orientation": "portrait",
+
+"icons": [
+
+{
+
+"src": "icon-192.png",
+
+"sizes": "192x192",
+
+"type": "image/png"
+
+},
+
+{
+
+"src": "icon-512.png",
+
+"sizes": "512x512",
+
+"type": "image/png"
+
+}
+
+]
+
+}
+
