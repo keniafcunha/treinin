@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#d878a5"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Meu Treino">
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=5">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=6">
 <title>Meu Treino • Fitness</title>
 </head>
 <body>
-<header class="top"><div><small>SEU ESPAÇO FITNESS</small><h1>Oi, linda! <span>♡</span></h1><p id="todayLabel">Vamos cuidar de você hoje.</p></div><button class="round" id="quickTimer" aria-label="Cronômetro">⏱</button></header>
+<header class="top"><div><small>SEU ESPAÇO FITNESS</small><h1>Oi, linda! <span>♡</span></h1><p id="todayLabel">Vamos cuidar de você hoje.</p></div></header>
 <main id="app">
 <section id="home" class="page active">
-<button class="profile-switch-card" id="profileSwitchHome"><span class="profile-mini">♡</span><span>Treinando como <b id="activeProfileLabel">Kenia</b></span><span class="switch-link">Trocar</span></button><div class="hero"><div class="eyebrow">TREINO DO DIA</div><h2 id="todayWorkout">Carregando...</h2><p id="todayMeta"></p><button class="primary" id="startToday">♡ Iniciar treino</button></div>
-<div class="section-head"><h3>Sua semana</h3><span id="weekCount">0/6 concluídos</span></div><div class="week-strip" id="weekStrip"></div>
-<div class="stats"><article><strong id="totalSessions">0</strong><span>Treinos feitos</span></article><article><strong id="totalSets">0</strong><span>Séries concluídas</span></article></div>
+<button class="profile-switch-card" id="profileSwitchHome"><span class="profile-mini">♡</span><span>Treinando como <b id="activeProfileLabel">Kenia</b></span><span class="switch-link">Trocar</span></button><div class="hero"><div class="eyebrow">TREINO DO DIA</div><h2 id="todayWorkout">Carregando...</h2><p id="todayMeta"></p><select id="workoutPicker" class="picker" aria-label="Escolher o treino"></select><button class="primary" id="startToday">♡ Iniciar treino</button></div>
+<div class="section-head"><h3>Sua semana</h3><span id="weekCount">0/6 concluídos</span></div><div class="week-filter"><button type="button" class="soft" id="weekPrev" aria-label="Semana anterior">‹</button><select id="weekSelect" aria-label="Escolher semana"></select><button type="button" class="soft" id="weekNext" aria-label="Próxima semana">›</button></div><div class="week-strip" id="weekStrip"></div>
+<div class="stats one"><article><strong id="totalSessions">0</strong><span>Treinos feitos</span></article></div>
 <div class="quote">“Pequenos passos também te levam longe.” <span>✿</span></div>
+<details class="opts"><summary>⚙ Opções e backup</summary><div class="settings"><button class="setting" id="exportData">⇩ Exportar backup JSON</button><label class="setting file-setting">⇧ Importar backup JSON<input type="file" id="importData" accept=".json,application/json"></label><button class="setting" id="resetData">↻ Restaurar ficha original</button><p class="muted">Restaurar a ficha não apaga seu histórico nem sua água.</p></div></details>
 </section>
 <section id="workouts" class="page">
 <div class="section-head"><h2>Minha ficha</h2><button class="soft" id="addExercise">＋ Exercício</button></div>
@@ -33,6 +34,13 @@
 <div class="water-custom"><input type="number" id="waterCustom" min="1" max="5000" step="50" placeholder="Outra quantidade (ml)"><button type="button" class="primary" id="waterAddCustom">Adicionar</button></div>
 <div class="water-actions"><button type="button" class="soft" id="waterUndo">↶ Desfazer último</button><button type="button" class="soft" id="waterGoalBtn">◎ Alterar meta</button></div>
 </div>
+<h3>Lembrete de água</h3>
+<div class="water-card remind">
+<label class="switch-row"><span>Me avisar para beber água</span><input type="checkbox" id="remOn"></label>
+<div class="rem-grid"><label>A cada<select id="remEvery"><option value="30">30 min</option><option value="60">1 hora</option><option value="90">1h30</option><option value="120">2 horas</option><option value="180">3 horas</option></select></label><label>Das<input type="time" id="remFrom" value="08:00"></label><label>Até<input type="time" id="remTo" value="22:00"></label></div>
+<button type="button" class="soft" id="remTest">🔔 Testar alerta</button>
+<p class="muted" id="remNote"></p>
+</div>
 <h3>Últimos 7 dias</h3>
 <div class="water-card"><div class="water-week" id="waterWeek"></div></div>
 </section>
@@ -46,6 +54,7 @@
 <p class="muted weight-goal-text" id="weightGoalText"></p>
 <button type="button" class="soft" id="weightGoalBtn">◎ Definir meta</button>
 </div>
+<div class="water-card"><small>EVOLUÇÃO DO PESO</small><div class="wchart-wrap" id="wChartWrap"><canvas id="weightChart" height="220"></canvas></div><p class="muted" id="weightChartNote"></p></div>
 <div class="water-card">
 <div class="cal-head"><button type="button" class="soft" id="weightPrev" aria-label="Mês anterior">‹</button><b id="weightMonth"></b><button type="button" class="soft" id="weightNext" aria-label="Próximo mês">›</button></div>
 <div class="cal-grid" id="weightCal"></div>
@@ -58,14 +67,18 @@
 </div>
 </section>
 <section id="history" class="page"><h2>Histórico</h2><p class="muted">Suas sessões ficam guardadas neste aparelho.</p><div id="historyList"></div></section>
-<section id="progress" class="page"><h2>Seu progresso</h2><div class="stats"><article><strong id="monthlyCount">0</strong><span>Este mês</span></article><article><strong id="bestSet">—</strong><span>Melhor carga (kg)</span></article></div><label class="field-label">Evolução por exercício</label><select id="progressExercise"></select><div class="chart-card"><canvas id="progressChart" height="220"></canvas><p id="chartNote" class="muted"></p></div><h3>Treinos por semana</h3><div id="weeklyBars" class="bars"></div></section>
-<section id="profile" class="page"><h2>Meu perfil</h2><div class="profile-card"><div class="avatar">♡</div><h3 id="profileNameTitle">Kenia</h3><p class="muted" id="profileRoleText">Administradora • dados salvos neste aparelho</p><button class="soft" id="profileSwitchButton">Trocar perfil</button></div>
-<div class="settings"><button class="setting" id="exportData">⇩ Exportar backup JSON</button><label class="setting file-setting">⇧ Importar backup JSON<input type="file" id="importData" accept=".json,application/json"></label><button class="setting" id="resetData">↻ Restaurar ficha original</button><p class="muted">Restaurar a ficha não apaga seu histórico nem sua água.</p></div>
-</section>
+<section id="progress" class="page"><h2>Seu progresso</h2><div class="stats"><article><strong id="monthlyCount">0</strong><span>Este mês</span></article><article><strong id="bestSet">—</strong><span>Melhor carga (kg)</span></article></div><label class="field-label">Grupo muscular</label><select id="progressGroup"></select><label class="field-label">Exercício</label><select id="progressExercise"></select><div class="chart-card"><canvas id="progressChart" height="220"></canvas><p id="chartNote" class="muted"></p></div><h3>Treinos por semana</h3><div id="weeklyBars" class="bars"></div></section>
 <section id="session" class="page session-page"><div class="session-top"><button class="back" id="exitSession">‹</button><div><small id="sessionDay">TREINO</small><h2 id="sessionTitle">Treino</h2></div><button class="round" id="sessionTimer">⏱</button></div><div class="progress-track"><div id="sessionProgress"></div></div><p class="muted" id="sessionCount"></p><div id="exerciseSession"></div><div class="session-nav"><button class="soft" id="prevExercise">← Anterior</button><button class="primary" id="nextExercise">Próximo →</button></div></section>
 <section id="timerModal" class="modal hidden"><div class="modal-card"><button class="close" id="closeTimer">×</button><small>DESCANSO</small><div class="timer" id="timerDisplay">01:00</div><div class="timer-presets"><button data-time="30">30s</button><button data-time="45">45s</button><button data-time="60">60s</button><button data-time="90">90s</button><button data-time="120">120s</button></div><div class="timer-controls"><button class="soft" id="timerMinus">−15s</button><button class="primary" id="timerStart">Iniciar</button><button class="soft" id="timerPlus">＋15s</button></div><button class="textbtn" id="timerReset">Reiniciar</button><label class="auto"><input type="checkbox" id="autoRest"> Iniciar descanso ao concluir série</label></div></section>
+<section id="exModal" class="modal hidden"><div class="modal-card edit-card"><button class="close" id="exClose">×</button><small>FICHA</small><h3 id="exTitle">Exercício</h3>
+<label class="fl">Treino<select id="exWorkout"></select></label>
+<label class="fl">Nome<input id="exName"></label>
+<label class="fl">Grupo muscular<input id="exMuscle" list="muscleList"></label><datalist id="muscleList"></datalist>
+<label class="fl">Equipamento<input id="exEquip"></label>
+<div class="two"><label class="fl">Séries<input type="number" id="exSets" min="1" max="10"></label><label class="fl">Repetições<input id="exReps"></label></div>
+<button class="primary" id="exSave" style="width:100%;margin-top:12px">Salvar</button><button class="textbtn" id="exDelete">🗑 Remover da ficha</button></div></section>
 </main>
-<nav class="bottom-nav"><button data-page="home" class="nav active"><span>⌂</span>Início</button><button data-page="workouts" class="nav"><span>♧</span>Treinos</button><button data-page="water" class="nav"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2c3.6 4.3 6 7.3 6 10.4a6 6 0 0 1-12 0c0-3.1 2.4-6.1 6-10.4z"/></svg></span>Água</button><button data-page="weight" class="nav"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 9.5a5.5 5.5 0 0 1 8 0"/><path d="M12 12.5l1.8-2.2"/></svg></span>Peso</button><button data-page="history" class="nav"><span>▤</span>Histórico</button><button data-page="progress" class="nav"><span>↗</span>Progresso</button><button data-page="profile" class="nav"><span>♡</span>Perfil</button></nav>
+<nav class="bottom-nav"><button data-page="home" class="nav active"><span>⌂</span>Início</button><button data-page="workouts" class="nav"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg></span>Treinos</button><button data-page="water" class="nav"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2c3.6 4.3 6 7.3 6 10.4a6 6 0 0 1-12 0c0-3.1 2.4-6.1 6-10.4z"/></svg></span>Água</button><button data-page="weight" class="nav"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15.5M8 19.5h8M5 7.5h14"/><path d="M5 7.5 2.8 14M5 7.5 7.2 14M2.8 14a2.2 2.2 0 0 0 4.4 0zM19 7.5 16.8 14M19 7.5 21.2 14M16.8 14a2.2 2.2 0 0 0 4.4 0z"/></svg></span>Peso</button><button data-page="history" class="nav"><span>▤</span>Histórico</button><button data-page="progress" class="nav"><span>↗</span>Progresso</button></nav>
 <section id="profilePicker" class="profile-picker hidden" aria-label="Selecionar perfil">
   <div class="picker-card">
     <small>MEU TREINO FITNESS</small>
@@ -76,5 +89,5 @@
   </div>
 </section>
 <div id="toast" role="status"></div>
-<script src="script.js?v=5"></script>
+<script src="script.js?v=6"></script>
 </body></html>
