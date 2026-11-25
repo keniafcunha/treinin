@@ -76,7 +76,6 @@ const initial=()=>({
     prefs:{rest:60,autoRest:false,waterGoal:2000}
 });
 
-/* Garante que dados antigos (sem água) continuem funcionando */
 function ensureState(){
     if(!state.history)state.history=[];
     if(!state.water)state.water={};
@@ -101,6 +100,7 @@ function openDB(){
 }
 
 function save(){
+    if(!db)return Promise.resolve();
     return new Promise((res,rej)=>{
         let tx=db.transaction("data","readwrite"),
             store=tx.objectStore("data");
@@ -112,6 +112,7 @@ function save(){
 }
 
 function load(){
+    if(!db)return Promise.resolve();
     return new Promise(res=>{
         try{
             const tx=db.transaction("data","readonly"),
@@ -164,7 +165,7 @@ function toast(s){
 
 function page(name){
     document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-    $(name).classList.add("active");
+    if($(name))$(name).classList.add("active");
     document.querySelectorAll(".nav").forEach(n=>
         n.classList.toggle("active",n.dataset.page===name)
     );
@@ -424,17 +425,9 @@ function findExercise(id){
 /* =========================================
    HISTÓRICO DE TREINOS
    ========================================= */
-
 function renderHistory(){
-    let list=$("historyList")||$("historyListContainer")||$("historyRecords")||$("historyContent");
-
-    if(!list){
-        const pageEl=$("history");
-        if(!pageEl)return;
-        list=document.createElement("div");
-        list.id="historyList";
-        pageEl.appendChild(list);
-    }
+    let list=$("historyList");
+    if(!list)return;
 
     if(!state.history.length){
         list.innerHTML=`
@@ -503,7 +496,6 @@ function deleteHistory(id){
 /* =========================================
    PROGRESSO E GRÁFICOS
    ========================================= */
-
 function renderProgress(){
     let month=new Date().getMonth();
 
@@ -604,116 +596,117 @@ function drawChart(){
 /* =========================================
    ÁGUA 💧
    ========================================= */
-
 const waterKey=(d=new Date())=>
     `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
 const waterTotal=key=>(state.water[key]||[]).reduce((a,b)=>a+b,0);
 
-/* Cria a aba "Água" e o botão do menu automaticamente */
 function ensureWaterUI(){
-    if($("water"))return;
-
-    const ref=$("history")||document.querySelector(".page");
-    if(!ref)return;
-
-    const sec=document.createElement("section");
-    sec.id="water";
-    sec.className="page";
-    sec.innerHTML=`
-        <div class="water-card">
-            <p class="water-title">💧 Hidratação de hoje</p>
-            <div class="water-glass">
-                <div class="water-fill" id="waterFill"></div>
-                <span id="waterPct">0%</span>
-            </div>
-            <h2 class="water-total"><span id="waterTotal">0</span> ml</h2>
-            <small id="waterGoalText"></small>
-            <div class="water-quick">
-                <button type="button" data-water="200">+200 ml</button>
-                <button type="button" data-water="300">+300 ml</button>
-                <button type="button" data-water="500">+500 ml</button>
-                <button type="button" data-water="1000">+1 L</button>
-            </div>
-            <div class="water-custom">
-                <input type="number" id="waterCustom" min="1" max="5000" step="50" placeholder="Outra quantidade (ml)">
-                <button type="button" id="waterAddCustom">Adicionar</button>
-            </div>
-            <div class="water-actions">
-                <button type="button" id="waterUndo">↶ Desfazer último</button>
-                <button type="button" id="waterGoalBtn">🎯 Alterar meta</button>
-            </div>
-        </div>
-        <div class="water-card">
-            <p class="water-title">Últimos 7 dias</p>
-            <div class="water-week" id="waterWeek"></div>
-        </div>
-    `;
-    ref.parentElement.appendChild(sec);
-
-    const css=document.createElement("style");
-    css.id="themeAndWaterStyles";
-    css.textContent=`
-        body{background:var(--bg-grad) fixed !important}
-        .nav.active{color:var(--accent-dark) !important}
-        .start-small,#startToday{background:linear-gradient(135deg,var(--primary),var(--secondary)) !important;color:#fff !important;border-color:transparent !important}
-        .star.on{color:var(--primary) !important}
-        .week-day.today{border-color:var(--primary) !important}
-        .week-day.done{background:var(--soft) !important}
-        .exercise-icon{background:var(--soft-alt) !important;color:var(--accent-dark) !important}
-        #sessionProgress,.bar{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
-        .history-progress{background:var(--track) !important}
-        .history-progress>div{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
-        .delete-history{background:var(--soft) !important;color:var(--accent-dark) !important}
-
-        .water-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:var(--shadow)}
-        .water-title{margin:0 0 12px;font-weight:700;color:var(--accent-dark)}
-        .water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--primary);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--soft-alt)}
-        .water-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--secondary),var(--primary));transition:height .6s ease}
-        .water-glass span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:800;color:var(--accent-dark);text-shadow:0 0 6px #fff}
-        .water-total{margin:4px 0;color:var(--accent-dark)}
-        .water-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0 10px}
-        .water-card button{border:0;border-radius:14px;padding:12px;font-weight:700;cursor:pointer;background:var(--soft);color:var(--accent-dark)}
-        .water-quick button,#waterAddCustom{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff}
-        .water-custom{display:flex;gap:8px;margin-bottom:10px}
-        .water-custom input{flex:1;min-width:0;border:1px solid var(--border);border-radius:14px;padding:12px;font-size:1em}
-        .water-actions{display:flex;gap:8px}
-        .water-actions button{flex:1}
-        .water-week{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:130px}
-        .water-day{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.72em}
-        .water-day .col{width:100%;max-width:30px;height:90px;display:flex;align-items:flex-end;background:var(--track);border-radius:8px;overflow:hidden;margin-bottom:4px}
-        .water-day .col i{display:block;width:100%;background:linear-gradient(180deg,var(--secondary),var(--primary));border-radius:8px}
-        .water-day.goal .col{outline:2px solid var(--secondary)}
-    `;
-    document.head.appendChild(css);
-
-    /* Botão no menu inferior */
-    const refNav=[...document.querySelectorAll(".nav")].pop();
-    if(refNav){
-        const b=refNav.cloneNode(true);
-        b.dataset.page="water";
-        b.classList.remove("active");
-        const kids=b.children;
-        if(kids.length>=2){
-            kids[0].textContent="💧";
-            kids[kids.length-1].textContent="Água";
-        }else{
-            b.textContent="💧 Água";
+    if(!$("water")){
+        const ref=$("history")||document.querySelector(".page");
+        if(ref){
+            const sec=document.createElement("section");
+            sec.id="water";
+            sec.className="page";
+            sec.innerHTML=`
+                <div class="water-card">
+                    <p class="water-title">💧 Hidratação de hoje</p>
+                    <div class="water-glass">
+                        <div class="water-fill" id="waterFill"></div>
+                        <span id="waterPct">0%</span>
+                    </div>
+                    <h2 class="water-total"><span id="waterTotal">0</span> ml</h2>
+                    <small id="waterGoalText"></small>
+                    <div class="water-quick">
+                        <button type="button" data-water="200">+200 ml</button>
+                        <button type="button" data-water="300">+300 ml</button>
+                        <button type="button" data-water="500">+500 ml</button>
+                        <button type="button" data-water="1000">+1 L</button>
+                    </div>
+                    <div class="water-custom">
+                        <input type="number" id="waterCustom" min="1" max="5000" step="50" placeholder="Outra quantidade (ml)">
+                        <button type="button" id="waterAddCustom">Adicionar</button>
+                    </div>
+                    <div class="water-actions">
+                        <button type="button" id="waterUndo">↶ Desfazer último</button>
+                        <button type="button" id="waterGoalBtn">🎯 Alterar meta</button>
+                    </div>
+                </div>
+                <div class="water-card">
+                    <p class="water-title">Últimos 7 dias</p>
+                    <div class="water-week" id="waterWeek"></div>
+                </div>
+            `;
+            ref.parentElement.appendChild(sec);
         }
-        b.onclick=()=>page("water");
-        refNav.parentElement.appendChild(b);
+    }
+
+    if(!document.querySelector('.nav[data-page="water"]')){
+        const refNav=[...document.querySelectorAll(".nav")].pop();
+        if(refNav){
+            const b=refNav.cloneNode(true);
+            b.dataset.page="water";
+            b.classList.remove("active");
+            const kids=b.children;
+            if(kids.length>=2){
+                kids[0].textContent="💧";
+                kids[kids.length-1].textContent="Água";
+            }else{
+                b.textContent="💧 Água";
+            }
+            b.onclick=()=>page("water");
+            refNav.parentElement.appendChild(b);
+        }
+    }
+
+    if(!document.getElementById("themeAndWaterStyles")){
+        const css=document.createElement("style");
+        css.id="themeAndWaterStyles";
+        css.textContent=`
+            body{background:var(--bg-grad) fixed !important}
+            .nav.active{color:var(--accent-dark) !important}
+            .start-small,#startToday{background:linear-gradient(135deg,var(--primary),var(--secondary)) !important;color:#fff !important;border-color:transparent !important}
+            .star.on{color:var(--primary) !important}
+            .week-day.today{border-color:var(--primary) !important}
+            .week-day.done{background:var(--soft) !important}
+            .exercise-icon{background:var(--soft-alt) !important;color:var(--accent-dark) !important}
+            #sessionProgress,.bar{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
+            .history-progress{background:var(--track) !important}
+            .history-progress>div{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
+            .delete-history{background:var(--soft) !important;color:var(--accent-dark) !important}
+
+            .water-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:var(--shadow)}
+            .water-title{margin:0 0 12px;font-weight:700;color:var(--accent-dark)}
+            .water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--primary);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--soft-alt)}
+            .water-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--secondary),var(--primary));transition:height .6s ease}
+            .water-glass span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:800;color:var(--accent-dark);text-shadow:0 0 6px #fff}
+            .water-total{margin:4px 0;color:var(--accent-dark)}
+            .water-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0 10px}
+            .water-card button{border:0;border-radius:14px;padding:12px;font-weight:700;cursor:pointer;background:var(--soft);color:var(--accent-dark)}
+            .water-quick button,#waterAddCustom{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff}
+            .water-custom{display:flex;gap:8px;margin-bottom:10px}
+            .water-custom input{flex:1;min-width:0;border:1px solid var(--border);border-radius:14px;padding:12px;font-size:1em}
+            .water-actions{display:flex;gap:8px}
+            .water-actions button{flex:1}
+            .water-week{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:130px}
+            .water-day{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.72em}
+            .water-day .col{width:100%;max-width:30px;height:90px;display:flex;align-items:flex-end;background:var(--track);border-radius:8px;overflow:hidden;margin-bottom:4px}
+            .water-day .col i{display:block;width:100%;background:linear-gradient(180deg,var(--secondary),var(--primary));border-radius:8px}
+            .water-day.goal .col{outline:2px solid var(--secondary)}
+        `;
+        document.head.appendChild(css);
     }
 
     document.querySelectorAll("[data-water]").forEach(b=>
         b.onclick=()=>addWater(+b.dataset.water)
     );
 
-    $("waterAddCustom").onclick=()=>{
+    if($("waterAddCustom"))$("waterAddCustom").onclick=()=>{
         addWater(+$("waterCustom").value);
         $("waterCustom").value="";
     };
 
-    $("waterUndo").onclick=()=>{
+    if($("waterUndo"))$("waterUndo").onclick=()=>{
         const key=waterKey(),
             list=state.water[key]||[];
 
@@ -726,7 +719,7 @@ function ensureWaterUI(){
         toast(`-${removed} ml removidos`);
     };
 
-    $("waterGoalBtn").onclick=()=>{
+    if($("waterGoalBtn"))$("waterGoalBtn").onclick=()=>{
         const v=+prompt("Meta diária de água (ml):",state.prefs.waterGoal||2000);
         if(!(v>=500&&v<=10000)){
             if(v)toast("Informe uma meta entre 500 e 10000 ml");
@@ -802,7 +795,6 @@ function render(){
 /* =========================================
    SESSÃO DE TREINO
    ========================================= */
-
 function startWorkout(id){
     let w=state.workouts.find(x=>x.id===id);
     if(!w||!w.exercises.length)return;
@@ -942,7 +934,6 @@ $("exitSession").onclick=()=>{
 };
 
 /* FILTROS */
-
 ["search","fDay","fMuscle","fWorkout","fEquip","fStatus"].forEach(id=>
     $(id).addEventListener(id==="search"?"input":"change",renderWorkouts)
 );
@@ -953,7 +944,6 @@ $("clearFilters").onclick=()=>{
 };
 
 /* ADICIONAR EXERCÍCIO */
-
 $("addExercise").onclick=()=>{
     if(activeProfile!=="admin"){
         toast("Somente a administradora pode alterar a ficha.");
@@ -987,11 +977,9 @@ $("addExercise").onclick=()=>{
 };
 
 /* GRÁFICO */
-
 $("progressExercise").onchange=drawChart;
 
 /* EXPORTAR BACKUP */
-
 $("exportData").onclick=()=>{
     let blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
     let a=document.createElement("a");
@@ -1002,7 +990,6 @@ $("exportData").onclick=()=>{
 };
 
 /* IMPORTAR BACKUP */
-
 $("importData").onchange=async ev=>{
     let f=ev.target.files[0];
     if(!f)return;
@@ -1027,7 +1014,6 @@ $("importData").onchange=async ev=>{
 };
 
 /* RESTAURAR FICHA ORIGINAL */
-
 $("resetData").onclick=()=>{
     if(activeProfile!=="admin"){
         toast("Somente a administradora pode restaurar a ficha.");
@@ -1050,7 +1036,6 @@ $("resetData").onclick=()=>{
 };
 
 /* CRONÔMETRO */
-
 function showTimer(){
     $("timerModal").classList.remove("hidden");
     updateTimer();
@@ -1093,3 +1078,112 @@ function timerDone(){
 
 function stopTimer(){
     if(timerInterval)clearInterval(timerInterval);
+    timerInterval=null;
+    timer.running=false;
+}
+
+$("quickTimer").onclick=
+$("sessionTimer").onclick=showTimer;
+
+$("closeTimer").onclick=()=>$("timerModal").classList.add("hidden");
+
+$("timerStart").onclick=()=>{
+    timer.running?(stopTimer(),updateTimer()):startTimer();
+};
+
+$("timerReset").onclick=()=>{
+    stopTimer();
+    timer.left=timer.seconds;
+    updateTimer();
+};
+
+$("timerPlus").onclick=()=>{
+    timer.left+=15;
+    timer.seconds+=15;
+    if(timer.running)timer.end+=15000;
+    updateTimer();
+};
+
+$("timerMinus").onclick=()=>{
+    timer.left=Math.max(0,timer.left-15);
+    timer.seconds=Math.max(15,timer.seconds-15);
+    if(timer.running)timer.end-=15000;
+    updateTimer();
+};
+
+document.querySelectorAll("[data-time]").forEach(b=>
+    b.onclick=()=>{
+        stopTimer();
+        timer.seconds=timer.left=+b.dataset.time;
+        state.prefs.rest=timer.seconds;
+        save();
+        updateTimer();
+    }
+);
+
+$("autoRest").checked=state.prefs.autoRest;
+
+$("autoRest").onchange=()=>{
+    state.prefs.autoRest=$("autoRest").checked;
+    save();
+};
+
+/* ESTILIZAÇÃO DO HISTÓRICO */
+(function addHistoryDeleteStyles(){
+    if(document.getElementById("historyDeleteStyles"))return;
+
+    const style=document.createElement("style");
+    style.id="historyDeleteStyles";
+    style.textContent=`
+        .history-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+        .delete-history{flex:0 0 38px;width:38px;height:38px;border:0;border-radius:10px;background:var(--soft);color:var(--accent-dark);font-size:17px;cursor:pointer;transition:transform .2s,background .2s}
+        .delete-history:hover{transform:scale(1.05)}
+        .history-info{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0;font-size:.85em}
+        .history-progress{height:6px;overflow:hidden;border-radius:99px;background:var(--track);margin:8px 0}
+        .history-progress>div{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary),var(--secondary))}
+        .history-empty{text-align:center;padding:28px 16px;color:inherit}
+    `;
+    document.head.appendChild(style);
+})();
+
+/* FUNÇÃO DE SEGURANÇA PARA TEXTOS */
+function esc(s){
+    return String(s??"").replace(/[&<>"']/g,c=>({
+        "&":"&",
+        "<":"<",
+        ">":">",
+        '"':""",
+        "'":"'"
+    }[c]));
+}
+
+/* INICIALIZAÇÃO DO APLICATIVO */
+(async()=>{
+    try{
+        activeProfile=localStorage.getItem("meuTreinoPerfilAtivo")||"admin";
+    }catch(e){
+        activeProfile="admin";
+    }
+
+    ensureWaterUI();
+    updateProfileUI();
+    render();
+
+    try{
+        await openDB();
+        await load();
+    }catch(e){
+        toast("Armazenamento local indisponível");
+    }
+
+    ensureState();
+    timer.seconds=timer.left=state.prefs.rest||60;
+    updateProfileUI();
+    render();
+    openProfilePicker();
+
+    if("serviceWorker"in navigator&&location.protocol!=="file:"){
+        navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+    }
+})();
+// FIM DO SCRIPT
