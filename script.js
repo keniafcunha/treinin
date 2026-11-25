@@ -54,7 +54,60 @@ function renderFilters(){options("fDay",DAYS);options("fMuscle",[...new Set(allE
 function matches(e){let q=$("search").value.toLowerCase(),day=$("fDay").value,m=$("fMuscle").value,w=$("fWorkout").value,eq=$("fEquip").value,s=$("fStatus").value;let done=!!(session&&session.workoutId===e.workoutId&&session.logs[e.id]?.some(x=>x.done));return(!q||[e.name,e.muscle,e.equipment].join(" ").toLowerCase().includes(q))&&(!day||e.day===day)&&(!m||e.muscle.includes(m))&&(!w||e.workout===w)&&(!eq||e.equipment===eq)&&(!s||(s==="fav"?e.favorite:s==="custom"?e.custom:s==="done"?done:!done))}
 function renderWorkouts(){renderFilters();let list=$("workoutList"),ex=allExercises().filter(matches);$("filterInfo").textContent=`${ex.length} exercício(s) • filtros ativos: ${[$("fDay").value,$("fMuscle").value,$("fWorkout").value,$("fEquip").value,$("fStatus").value].filter(Boolean).length}`;list.innerHTML="";state.workouts.forEach(w=>{let es=ex.filter(e=>e.workoutId===w.id);if(!es.length)return;let card=document.createElement("div");card.className="workout-card";card.innerHTML=`<div class="workout-head"><div><h3>${esc(w.title)}</h3><p>${w.day} • ${w.muscle}</p></div><button class="start-small" data-start="${w.id}">Iniciar</button></div><div class="exercise-list"></div>`;let inner=card.querySelector(".exercise-list");es.forEach(e=>{let row=document.createElement("div");row.className="exercise-row";row.innerHTML=`<div class="exercise-icon">♧</div><div class="exercise-info"><b>${esc(e.name)}</b><small>${esc(e.muscle)} • ${esc(e.equipment)} • ${e.sets} × ${esc(e.reps)}</small></div><button class="star ${e.favorite?"on":""}" data-fav="${e.id}">${e.favorite?"♥":"♡"}</button>`;inner.append(row)});list.append(card)});list.querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>startWorkout(b.dataset.start));list.querySelectorAll("[data-fav]").forEach(b=>b.onclick=()=>{let e=findExercise(b.dataset.fav);e.favorite=!e.favorite;save().then(render);toast(e.favorite?"Adicionado aos favoritos":"Removido dos favoritos")})}
 function findExercise(id){return allExercises().find(e=>e.id===id)}
-function renderHistory(){let l=$("historyList");l.innerHTML=state.history.slice().reverse().map((h,i)=>`<div class="history-card"><div class="workout-head"><div><h3>${esc(h.title)}</h3><p>${new Date(h.date).toLocaleString("pt-BR")} • ${Math.round(h.duration/60)} min</p></div><span class="mini">${h.percent}%</span></div><div class="history-details">${h.exerciseCount} exercícios • ${h.sets.filter(s=>s.done).length}/${h.sets.length} séries concluídas<br>${h.sets.filter(s=>s.done).map(s=>`${esc(s.name)}: ${s.weight||0} kg × ${s.reps||"—"}`).join("<br>")}</div></div>`).join("")||'<p class="muted">Seu primeiro treino concluído aparecerá aqui. ♡</p>'}
+function renderHistory(){
+ let l=$("historyList");
+
+ l.innerHTML=state.history
+  .map((h,index)=>({h,index}))
+  .reverse()
+  .map(({h,index})=>`
+   <div class="history-card">
+    <div class="workout-head">
+     <div>
+      <h3>${esc(h.title)}</h3>
+      <p>${new Date(h.date).toLocaleString("pt-BR")} • ${Math.round(h.duration/60000)} min</p>
+     </div>
+     <span class="mini">${h.percent}%</span>
+    </div>
+
+    <div class="history-details">
+     ${h.exerciseCount} exercícios •
+     ${h.sets.filter(s=>s.done).length}/${h.sets.length} séries concluídas
+     <br>
+     ${h.sets.filter(s=>s.done).map(s=>
+      ${esc(s.name)}: ${s.weight||0} kg × ${s.reps||"—"}
+     ).join("<br>")}
+    </div>
+
+    <button
+     class="soft"
+     type="button"
+     data-delete-history="${index}"
+     style="width:100%;margin-top:12px;color:#b94d78">
+     🗑️ Excluir treino
+    </button>
+   </div>
+  `).join("")
+  || '<p class="muted">Seu primeiro treino concluído aparecerá aqui. ♡</p>';
+
+ l.querySelectorAll("[data-delete-history]").forEach(button=>{
+  button.onclick=()=>{
+   const index=Number(button.dataset.deleteHistory);
+   const treino=state.history[index];
+
+   if(!treino)return;
+
+   if(confirm(Deseja excluir o treino "${treino.title}" do histórico?)){
+    state.history.splice(index,1);
+
+    save().then(()=>{
+     render();
+     toast("Treino excluído do histórico ♡");
+    });
+   }
+  };
+ });
+}
 function renderProgress(){let month=new Date().getMonth();$("monthlyCount").textContent=state.history.filter(h=>new Date(h.date).getMonth()===month).length;let sets=state.history.flatMap(h=>h.sets.filter(s=>s.done&&+s.weight>0));$("bestSet").textContent=sets.length?Math.max(...sets.map(s=>+s.weight)):"—";let ex=allExercises();$("progressExercise").innerHTML=[...new Set(ex.map(e=>e.name))].map(n=>`<option>${esc(n)}</option>`).join("");drawChart();let weekly=Array.from({length:7},(_,i)=>state.history.filter(h=>{let d=new Date(h.date);return Math.floor((Date.now()-d.getTime())/604800000)===i}).length).reverse();$("weeklyBars").innerHTML=weekly.map((v,i)=>`<div class="bar-item"><div class="bar" style="height:${Math.max(4,v*18)}px"></div>${7-i} sem.</div>`).join("")}
 function drawChart(){let canvas=$("progressChart"),ctx=canvas.getContext("2d"),name=$("progressExercise").value,records=state.history.flatMap(h=>h.sets.filter(s=>s.name===name&&s.done&&+s.weight>0).map(s=>({date:new Date(h.date),weight:+s.weight})));let width=canvas.clientWidth||300,ratio=devicePixelRatio||1;canvas.width=width*ratio;canvas.height=220*ratio;ctx.scale(ratio,ratio);ctx.clearRect(0,0,width,220);if(!records.length){$("chartNote").textContent="Registre cargas durante seus treinos para acompanhar a evolução.";return}let max=Math.max(...records.map(r=>r.weight)),min=Math.min(...records.map(r=>r.weight)),pad=28;ctx.strokeStyle="#e9c9d9";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,15);ctx.lineTo(pad,185);ctx.lineTo(width-10,185);ctx.stroke();ctx.strokeStyle="#d878a5";ctx.lineWidth=3;ctx.beginPath();records.forEach((r,i)=>{let x=pad+i*(width-pad-18)/Math.max(1,records.length-1),y=175-(r.weight-min)/(max-min||1)*135;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.stroke();records.forEach((r,i)=>{let x=pad+i*(width-pad-18)/Math.max(1,records.length-1),y=175-(r.weight-min)/(max-min||1)*135;ctx.fillStyle="#d878a5";ctx.beginPath();ctx.arc(x,y,4,0,7);ctx.fill()});$("chartNote").textContent=`${records.length} registro(s) • melhor carga: ${max} kg`}
 function render(){renderHome();if($("workouts").classList.contains("active"))renderWorkouts();if($("history").classList.contains("active"))renderHistory();if($("progress").classList.contains("active"))renderProgress()}
