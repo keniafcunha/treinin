@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#d878a5"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Meu Treino">
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=6">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=7">
 <title>Meu Treino • Fitness</title>
 </head>
 <body>
@@ -65,6 +65,19 @@
 <div class="water-custom"><input type="text" inputmode="decimal" id="weightInput" placeholder="Ex.: 62,5 kg"><button type="button" class="primary" id="weightSave">Salvar</button></div>
 <button type="button" class="soft" id="weightRemove">Remover registro</button>
 </div>
+<h2 class="meas-title">Medidas corporais</h2>
+<p class="muted">Meça 1 vez por semana, no mesmo dia e horário (de preferência em jejum), com a fita sem apertar a pele.</p>
+<div class="water-card"><small>ACOMPANHAMENTO SEMANAL</small><p class="meas-status" id="measStatus"></p></div>
+<div class="water-card meas-card">
+<small>REGISTRO DE MEDIDAS</small>
+<label class="fl">Data da medição<input type="date" id="measDate"></label>
+<div id="measForm"></div>
+<div class="water-actions"><button type="button" class="soft" id="measCopy">↻ Copiar a última</button><button type="button" class="soft" id="measRemove">Remover registro</button></div>
+<button type="button" class="primary" id="measSave" style="width:100%;margin-top:10px">Salvar medidas</button>
+</div>
+<div class="water-card"><small>EVOLUÇÃO POR MEDIDA</small><select id="measField" aria-label="Escolher medida"></select><div class="wchart-wrap" id="measChartWrap"><canvas id="measChart" height="200"></canvas></div><p class="muted" id="measChartNote"></p></div>
+<div class="water-card"><small>COMPARATIVO (cm)</small><div class="meas-table-wrap" id="measTable"></div></div>
+<div class="water-card"><small>HISTÓRICO SEMANAL</small><div id="measHistory"></div></div>
 </section>
 <section id="history" class="page"><h2>Histórico</h2><p class="muted">Suas sessões ficam guardadas neste aparelho.</p><div id="historyList"></div></section>
 <section id="progress" class="page"><h2>Seu progresso</h2><div class="stats"><article><strong id="monthlyCount">0</strong><span>Este mês</span></article><article><strong id="bestSet">—</strong><span>Melhor carga (kg)</span></article></div><label class="field-label">Grupo muscular</label><select id="progressGroup"></select><label class="field-label">Exercício</label><select id="progressExercise"></select><div class="chart-card"><canvas id="progressChart" height="220"></canvas><p id="chartNote" class="muted"></p></div><h3>Treinos por semana</h3><div id="weeklyBars" class="bars"></div></section>
@@ -89,5 +102,5 @@
   </div>
 </section>
 <div id="toast" role="status"></div>
-<script src="script.js?v=6"></script>
+<script src="script.js?v=7"></script>
 </body></html>
