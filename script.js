@@ -65,6 +65,7 @@ const initial=()=>({
     water:{},
     weight:{},
     measures:{},
+    deleted:[],
     prefs:{rest:60,autoRest:false,waterGoal:2000}
 });
 
@@ -74,6 +75,7 @@ function ensureState(){
     if(!state.water)state.water={};
     if(!state.weight)state.weight={};
     if(!state.measures)state.measures={};
+    if(!state.deleted)state.deleted=[];
     if(!state.prefs)state.prefs={rest:60,autoRest:false};
     if(!state.prefs.waterGoal)state.prefs.waterGoal=2000;
 }
@@ -95,6 +97,19 @@ function openDB(){
 }
 
 function save(){
+    if(viewing)return Promise.resolve();
+    ownState=state;
+    state.updatedAt=Date.now();
+
+    if(activeProfile==="admin"){
+        const s=fsig(state.workouts);
+        if(s!==fichaSig){fichaSig=s;idbPut("ficha_at",Date.now());}
+    }
+
+    return saveLocal().then(()=>{pushSoon();});
+}
+
+function saveLocal(){
     return new Promise((res,rej)=>{
         let tx=db.transaction("data","readwrite"),
             store=tx.objectStore("data");
@@ -225,13 +240,19 @@ async function selectProfile(profile){
     try{localStorage.setItem("meuTreinoPerfilAtivo",activeProfile);}catch(e){}
 
     await load();
+    ownState=state;
+    viewing=false;
+    fichaSig=fsig(state.workouts);
+    pollN=0;
 
     timer.seconds=timer.left=state.prefs.rest||60;
     $("autoRest").checked=!!state.prefs.autoRest;
 
     updateProfileUI();
     $("profilePicker").classList.add("hidden");
+    updateViewBar();
     render();
+    syncNow();
 }
 
 document.querySelectorAll("[data-profile]").forEach(b=>
@@ -522,6 +543,7 @@ function deleteHistory(id){
     if(!confirm(`Deseja excluir o registro "${workout.title||"Treino"}" do histórico?`))return;
 
     const previousHistory=state.history;
+    (state.deleted=state.deleted||[]).push(id);
     state.history=state.history.filter(h=>h.id!==id);
 
     save().then(()=>{
@@ -1383,7 +1405,8 @@ $("resetData").onclick=()=>{
     }
 
     if(confirm("Restaurar a ficha original? Seu histórico, água e peso serão preservados.")){
-        let hist=state.history,
+        let del=state.deleted,
+            hist=state.history,
             water=state.water,
             weight=state.weight,
             meas=state.measures,
@@ -1391,6 +1414,7 @@ $("resetData").onclick=()=>{
             goal=state.prefs.waterGoal;
 
         state=initial();
+        state.deleted=del||[];
         state.history=hist;
         state.water=water;
         state.prefs.waterGoal=goal||2000;
@@ -1774,6 +1798,301 @@ function drawMeasChart(){
     wrap.scrollLeft=wrap.scrollWidth;
 }
 
+/* =========================================
+   SINCRONIZAÇÃO ENTRE APARELHOS ☁
+   (Firebase Firestore via REST, consulta a cada ~5 s)
+   ========================================= */
+
+/* Preencha aqui UMA vez (vale para todos os aparelhos que receberem este arquivo),
+   ou deixe vazio e preencha na tela: Início > Opções e backup > Sincronização. */
+const CLOUD_DEFAULT={projectId:"meutreino-f0fd4",apiKey:"AIzaSyCzHYIrNrbYLOfUdTc_XijOcGGzx3WbfrI",secret:"treino-kn-7h3q9x2m"};
+
+function cloudCfg(){
+    try{
+        const c=JSON.parse(localStorage.getItem("meuTreinoCloud")||"null");
+        if(c&&c.projectId&&c.apiKey&&c.secret)return c;
+    }catch(e){}
+    return CLOUD_DEFAULT;
+}
+const cloudOn=()=>{const c=cloudCfg();return !!(c.projectId&&c.apiKey&&/^[A-Za-z0-9_-]{8,}$/.test(c.secret||""));};
+
+let ownState=null,viewing=false,syncing=false,syncAgain=false,pollN=0,pendingRender=false,
+    fichaSig="",pushTimer=null,badgeText="";
+
+const otherKey=()=>activeProfile==="admin"?"friend":"admin";
+const otherName=()=>profileNames[otherKey()]||"Naty";
+
+/* JSON com chaves ordenadas: dois aparelhos geram o mesmo texto para os mesmos dados */
+function stable(o){
+    if(Array.isArray(o))return "["+o.map(stable).join(",")+"]";
+    if(o&&typeof o==="object")
+        return "{"+Object.keys(o).sort().filter(k=>o[k]!==undefined).map(k=>JSON.stringify(k)+":"+stable(o[k])).join(",")+"}";
+    const s=JSON.stringify(o);
+    return s===undefined?"null":s;
+}
+
+const histSort=(a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id));
+
+function payload(s){
+    return {
+        history:[...(s.history||[])].sort(histSort),
+        water:s.water||{},
+        weight:s.weight||{},
+        measures:s.measures||{},
+        prefs:s.prefs||{},
+        deleted:[...new Set(s.deleted||[])].sort(),
+        updatedAt:s.updatedAt||0
+    };
+}
+
+/* Mescla os dados remotos dentro do objeto local, sem perder nada que só existe aqui */
+function mergeInto(t,r){
+    if(!r)return false;
+    const sig=()=>stable([t.history,t.water,t.weight,t.measures,t.prefs,t.deleted,t.updatedAt]);
+    const before=sig();
+
+    const del=[...new Set([...(t.deleted||[]),...(r.deleted||[])])].sort();
+    t.deleted=del;
+
+    const m=new Map();
+    (t.history||[]).forEach(h=>m.set(h.id,h));
+    (r.history||[]).forEach(h=>{
+        const a=m.get(h.id);
+        if(!a||(h.updatedAt||0)>(a.updatedAt||0))m.set(h.id,h);
+    });
+    const ds=new Set(del);
+    t.history=[...m.values()].filter(h=>!ds.has(h.id)).sort(histSort);
+
+    if((r.updatedAt||0)>(t.updatedAt||0)){
+        ["water","weight","measures","prefs"].forEach(k=>{if(r[k])t[k]=r[k];});
+        t.updatedAt=r.updatedAt;
+    }
+    return sig()!==before;
+}
+
+/* ----- IndexedDB ----- */
+function idbGet(k){
+    return new Promise(res=>{
+        try{
+            const r=db.transaction("data","readonly").objectStore("data").get(k);
+            r.onsuccess=()=>res(r.result);
+            r.onerror=()=>res(undefined);
+        }catch(e){res(undefined);}
+    });
+}
+function idbPut(k,v){
+    return new Promise(res=>{
+        try{
+            const tx=db.transaction("data","readwrite");
+            tx.objectStore("data").put(v,k);
+            tx.oncomplete=()=>res();
+            tx.onerror=()=>res();
+        }catch(e){res();}
+    });
+}
+async function readProfile(p){
+    return (await idbGet("state_"+p))||(p==="admin"?await idbGet("state"):null)||null;
+}
+
+/* ----- Firestore (REST) ----- */
+function fsUrl(name){
+    const c=cloudCfg();
+    return `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(c.projectId)}/databases/(default)/documents/treino_${encodeURIComponent(c.secret)}/${name}?key=${encodeURIComponent(c.apiKey)}`;
+}
+async function fsFetch(url,opt){
+    const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),9000);
+    try{return await fetch(url,{...(opt||{}),signal:ctl.signal});}
+    finally{clearTimeout(t);}
+}
+async function cloudGet(name){
+    const r=await fsFetch(fsUrl(name));
+    if(r.status===404)return null;
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const j=await r.json(),raw=j.fields&&j.fields.json&&j.fields.json.stringValue;
+    return raw?{raw,obj:JSON.parse(raw)}:null;
+}
+async function cloudPut(name,raw){
+    const r=await fsFetch(fsUrl(name)+"&updateMask.fieldPaths=json",{
+        method:"PATCH",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({fields:{json:{stringValue:raw}}})
+    });
+    if(!r.ok)throw new Error("HTTP "+r.status);
+}
+
+/* ----- ficha (compartilhada; só a administradora publica) ----- */
+const fsig=w=>stable((w||[]).map(x=>({...x,exercises:(x.exercises||[]).map(({favorite,...r})=>r)})));
+
+async function applyFicha(o){
+    const favs={};
+    (ownState.workouts||[]).forEach(w=>w.exercises.forEach(e=>favs[e.id]=e.favorite));
+    const w=o.workouts.map(x=>({...x,exercises:x.exercises.map(e=>({...e,favorite:!!favs[e.id]}))}));
+
+    ownState.workouts=w;
+    if(state!==ownState)state.workouts=w;
+    fichaSig=fsig(w);
+
+    await idbPut("shared_workouts",w);
+    await idbPut("ficha_at",o.at);
+    await idbPut("state_"+activeProfile,ownState);
+}
+
+/* ----- ciclo de sincronização ----- */
+function setBadge(t){
+    badgeText=t;
+    if($("syncBadge"))$("syncBadge").textContent=t;
+    if($("cloudStatus"))$("cloudStatus").textContent=t;
+}
+
+async function syncNow(){
+    if(!cloudOn()||!db||!ownState){setBadge(cloudOn()?"☁ aguardando":"☁ sincronização desligada");return;}
+    if(syncing){syncAgain=true;return;}
+    syncing=true;
+
+    let changed=false;
+
+    try{
+        const me=activeProfile,ot=otherKey();
+
+        /* 1) meus dados */
+        const rOwn=await cloudGet("perfil_"+me);
+        if(rOwn&&mergeInto(ownState,rOwn.obj)){
+            changed=true;
+            await idbPut("state_"+me,ownState);
+        }
+        const rawOwn=stable(payload(ownState));
+        if(!rOwn||rOwn.raw!==rawOwn)await cloudPut("perfil_"+me,rawOwn);
+
+        /* 2) dados da outra pessoa (só leitura) */
+        const rOt=await cloudGet("perfil_"+ot);
+        let os=viewing?state:await readProfile(ot);
+
+        if(rOt){
+            if(!os){os=initial();os.workouts=ownState.workouts;}
+            if(mergeInto(os,rOt.obj)){
+                changed=true;
+                await idbPut("state_"+ot,os);
+            }
+        }else if(os&&((os.history||[]).length||Object.keys(os.weight||{}).length)){
+            await cloudPut("perfil_"+ot,stable(payload(os)));
+        }
+
+        /* 3) ficha (a cada 6 consultas) */
+        if(pollN%6===0){
+            const rf=await cloudGet("ficha"),at=(await idbGet("ficha_at"))||0;
+            if(rf&&rf.obj.at>at&&!session){
+                await applyFicha(rf.obj);
+                changed=true;
+            }else if(me==="admin"&&(!rf||at>rf.obj.at)){
+                const at2=at||Date.now();
+                if(!at)await idbPut("ficha_at",at2);
+                await cloudPut("ficha",stable({at:at2,workouts:ownState.workouts}));
+            }
+        }
+        pollN++;
+
+        setBadge("☁ Sincronizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));
+        if(changed)refreshUI();
+    }catch(e){
+        setBadge(navigator.onLine===false?"☁ sem internet — dados guardados no aparelho":"☁ erro ao sincronizar ("+(e&&e.message||"rede")+")");
+    }finally{
+        syncing=false;
+        if(syncAgain){syncAgain=false;setTimeout(syncNow,300);}
+    }
+}
+
+function pushSoon(){
+    if(!cloudOn())return;
+    clearTimeout(pushTimer);
+    pushTimer=setTimeout(syncNow,700);
+}
+
+function refreshUI(){
+    const a=document.activeElement;
+    if(session||(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName))||!$("profilePicker").classList.contains("hidden")){
+        pendingRender=true;
+        return;
+    }
+    pendingRender=false;
+    render();
+}
+
+setInterval(()=>{
+    if(document.hidden)return;
+    if(pendingRender)refreshUI();
+    syncNow();
+},5000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){pollN=0;syncNow();}});
+window.addEventListener("online",()=>{pollN=0;syncNow();});
+window.addEventListener("focus",()=>syncNow());
+
+/* ----- ver os dados da outra pessoa ----- */
+async function setView(mode){
+    const wantOther=mode==="other";
+
+    if(wantOther&&session){toast("Finalize ou saia do treino primeiro.");return;}
+
+    if(wantOther){
+        const s=(await readProfile(otherKey()))||initial();
+        s.workouts=ownState.workouts;
+        state=s;
+        viewing=true;
+        ensureState();
+        syncNow();
+    }else{
+        viewing=false;
+        state=ownState;
+    }
+
+    updateViewBar();
+    render();
+}
+
+function updateViewBar(){
+    if(!$("viewBar"))return;
+    $("viewOtherBtn").textContent="Dados da "+otherName();
+    $("viewBar").querySelectorAll("[data-view]").forEach(b=>
+        b.classList.toggle("on",(b.dataset.view==="other")===viewing)
+    );
+    $("viewNote").hidden=!viewing;
+    $("viewNote").textContent="Visualizando os dados de "+otherName()+" (somente leitura)";
+    document.body.classList.toggle("viewing",viewing);
+    if(badgeText)setBadge(badgeText);
+    else setBadge(cloudOn()?"☁ conectando…":"☁ sincronização desligada");
+}
+
+function bindCloud(){
+    $("viewBar").querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>setView(b.dataset.view));
+
+    const c=cloudCfg();
+    $("cloudProject").value=c.projectId||"";
+    $("cloudKey").value=c.apiKey||"";
+    $("cloudSecret").value=c.secret||"";
+
+    $("cloudSave").onclick=()=>{
+        const cfg={
+            projectId:$("cloudProject").value.trim(),
+            apiKey:$("cloudKey").value.trim(),
+            secret:$("cloudSecret").value.trim()
+        };
+        if(!cfg.projectId||!cfg.apiKey){toast("Preencha o ID do projeto e a chave da API");return;}
+        if(!/^[A-Za-z0-9_-]{8,}$/.test(cfg.secret)){toast("O código secreto precisa ter 8+ letras/números (sem espaços)");return;}
+        try{localStorage.setItem("meuTreinoCloud",JSON.stringify(cfg));}catch(e){}
+        pollN=0;
+        setBadge("☁ conectando…");
+        syncNow();
+        toast("Sincronização ligada ☁");
+    };
+
+    $("cloudOff").onclick=()=>{
+        try{localStorage.removeItem("meuTreinoCloud");}catch(e){}
+        setBadge(cloudOn()?"☁ usando configuração do app":"☁ sincronização desligada");
+        toast("Sincronização desligada neste aparelho");
+    };
+
+    updateViewBar();
+}
+
 /* INICIALIZAÇÃO DO APLICATIVO */
 
 (async()=>{
@@ -1799,6 +2118,8 @@ function drawMeasChart(){
         }
 
         await load();
+        ownState=state;
+        fichaSig=fsig(state.workouts);
     }catch(e){
         toast("Armazenamento local indisponível");
     }
@@ -1807,9 +2128,12 @@ function drawMeasChart(){
 
     timer.seconds=timer.left=state.prefs.rest||60;
 
+    ownState=state;
     updateProfileUI();
+    bindCloud();
     render();
     openProfilePicker();
+    syncNow();
 
     if("serviceWorker"in navigator&&location.protocol!=="file:"){
         const hadController=!!navigator.serviceWorker.controller;
