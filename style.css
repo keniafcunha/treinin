@@ -104,3 +104,21 @@ input,select{width:100%;background:#fff;border:1px solid var(--line);border-radi
 .rem-grid{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;margin-bottom:12px;text-align:left}.rem-grid label{font-size:11px;color:var(--muted);font-weight:700}.rem-grid select,.rem-grid input{margin-top:4px;padding:10px 6px;font-size:13px}
 .wchart-wrap{overflow-x:auto;margin:10px 0 4px;-webkit-overflow-scrolling:touch}.wchart-wrap canvas{display:block}
 .edit-card{text-align:left;max-height:92vh;overflow:auto}.edit-card h3{margin:4px 0 8px}.fl{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-top:10px}.fl input,.fl select{margin-top:4px;color:var(--ink)}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.edit-card .textbtn{display:block;margin:6px auto 0}
+
+/* ===== MEDIDAS ===== */
+.meas-title{margin:26px 0 4px}
+.meas-status{margin:8px 0 0;font-weight:650;color:var(--deeper);font-size:14px}
+.meas-card{text-align:left}.meas-card>small{display:block;text-align:center}
+.meas-card h4{margin:18px 0 2px;font-size:14px;color:var(--deeper)}
+.meas-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meas-card .fl .tip{display:block;letter-spacing:0;font-weight:500;font-size:10px;color:var(--muted);margin-top:1px;min-height:24px;line-height:1.25}
+.meas-card .fl input{padding:10px;text-align:center}
+#measField{margin:10px 0 4px}
+.meas-table-wrap{overflow-x:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
+.meas-table{width:100%;border-collapse:collapse;font-size:12px;min-width:440px}
+.meas-table th{font-size:10px;color:var(--label);text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+.meas-table td{text-align:right;padding:8px 4px;border-bottom:1px solid var(--line)}
+.meas-table th:first-child,.meas-table td:first-child{text-align:left;font-weight:700;color:var(--ink)}
+.meas-table .dn{color:#2f8f5b}.meas-table .up{color:#c0556f}
+.meas-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--line);text-align:left}
+.meas-item:last-child{border:0}.meas-item b{font-size:14px}.meas-item span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
