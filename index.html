@@ -277,4 +277,450 @@
         ["Stiff","Posteriores/Glúteos","Barra ou halteres",3,"12 a 15"],["Agachamento Búlgaro","Posteriores/Glúteos","Halteres",3,"12 a 15"],["Prensa Unilateral","Quadríceps/Posteriores","Leg press",3,"12 a 15"],["Mesa Flexora","Posteriores","Máquina",3,"12 a 15"],["Flexora Sentada","Posteriores","Máquina",3,"12 a 15"],["Panturrilha em Pé","Panturrilhas","Máquina",4,"15 a 20"],["Elevação de pernas suspensa","Abdominal","Barra",3,"12 a 15"]
       ]],
       ["Quinta-feira","Treino 4: Ombro e Peito","Ombro e Peito",[
-        ["Supino Inclinado","Peito","Halteres ou máquina",3,"12 a 15"],["Desenvolvimento com Halteres","Ombros","Halteres",3,"12 a 15"],["Voador","Peito","Máquina",3,"12 a 15"],["Crucifixo","Peito","Halteres",3,"12 a 15"],["Elevação Lateral","Omb
+        ["Supino Inclinado","Peito","Halteres ou máquina",3,"12 a 15"],["Desenvolvimento com Halteres","Ombros","Halteres",3,"12 a 15"],["Voador","Peito","Máquina",3,"12 a 15"],["Crucifixo","Peito","Halteres",3,"12 a 15"],["Elevação Lateral","Ombros","Halteres",3,"12 a 15"],["Elevação Frontal","Ombros","Halteres",3,"12 a 15"],["Prancha lateral com elevação de quadril","Abdominal","Peso corporal",3,"30 a 45 s por lado"]
+      ]],
+      ["Sexta-feira","Treino 5: Glúteos","Glúteos",[
+        ["Hip Thrust","Glúteos","Barra ou máquina",3,"12 a 15"],["Agachamento Búlgaro","Glúteos","Halteres",3,"12 a 15"],["Elevação Pélvica Unilateral","Glúteos","Peso corporal/halter",3,"12 a 15"],["Glúteo no Cabo","Glúteos","Cabo",3,"12 a 15"],["Coice no Cabo","Glúteos","Cabo",3,"12 a 15"],["Cadeira Abdutora","Glúteos/Abdutores","Máquina",3,"12 a 15"],["Crunch","Abdominal","Peso corporal",3,"20 a 30"]
+      ]],
+      ["Sábado","Treino 6: Bíceps e Tríceps","Bíceps e Tríceps",[
+        ["Rosca Direta","Bíceps","Barra",3,"12 a 15"],["Tríceps na Polia","Tríceps","Polia",3,"12 a 15"],["Rosca Martelo","Bíceps","Halteres",3,"12 a 15"],["Tríceps Francês","Tríceps","Halter",3,"12 a 15"],["Rosca Concentrada","Bíceps","Halter",3,"12 a 15"],["Tríceps Coice","Tríceps","Halter",3,"12 a 15"],["Prancha com toque no ombro","Abdominal","Peso corporal",3,"30 a 45 s"]
+      ]],
+      ["Domingo","Descanso / Recuperação","Recuperação",[]]
+    ];
+
+    const THEMES={
+      admin:{primary:"#a98ee6",secondary:"#89c8f5",dark:"#6b52ae",soft:"#efe9fc",softAlt:"#e6f3fd",border:"#ddd3f5",track:"#e5effb",ink:"#2a2638",muted:"#746e88",shadow:"0 8px 28px rgba(139,120,210,.12)",heroGrad:"linear-gradient(135deg,#b79ff0 0%,#8bc9f6 100%)",bg:"linear-gradient(160deg,#f4efff 0%,#eaf5ff 100%)",meta:"#b79ff0"},
+      friend:{primary:"#f08ab5",secondary:"#f7a976",dark:"#c85874",soft:"#fdebf2",softAlt:"#fff1e6",border:"#f4d5df",track:"#fce9e2",ink:"#36282a",muted:"#8a7478",shadow:"0 8px 28px rgba(235,138,155,.13)",heroGrad:"linear-gradient(135deg,#f59ec2 0%,#f8b07c 100%)",bg:"linear-gradient(160deg,#fff2f7 0%,#fff4ea 100%)",meta:"#f59ec2"}
+    };
+
+    const $=id=>document.getElementById(id);
+    const uid=()=>Math.random().toString(36).slice(2,10);
+    const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&","<":"<",">":">",'"':""","'":"'"}[c]));
+    const initial=()=>({workouts:seed.map((w,wi)=>({id:"w"+wi,day:w[0],title:w[1],muscle:w[2],exercises:w[3].map((e,i)=>({id:"e"+wi+"_"+i,name:e[0],muscle:e[1],equipment:e[2],sets:e[3],reps:e[4],favorite:false,custom:false}))})),history:[],water:{},prefs:{rest:60,autoRest:false,waterGoal:2000}});
+
+    let db=null,state=initial(),session=null,activeProfile="admin",timer={seconds:60,left:60,running:false,end:0},timerInterval=null;
+
+    function ensureState(){
+      if(!state.history)state.history=[];
+      if(!state.water)state.water={};
+      if(!state.prefs)state.prefs={rest:60,autoRest:false};
+      if(!state.prefs.waterGoal)state.prefs.waterGoal=2000;
+    }
+
+    document.addEventListener("click",e=>{
+      const prof=e.target.closest("[data-profile]");
+      if(prof){selectProfile(prof.dataset.profile);return;}
+
+      const nav=e.target.closest("[data-page]");
+      if(nav){page(nav.dataset.page);return;}
+
+      const wBtn=e.target.closest("[data-water]");
+      if(wBtn){addWater(+wBtn.dataset.water);return;}
+
+      const tBtn=e.target.closest("[data-time]");
+      if(tBtn){stopTimer();timer.seconds=timer.left=+tBtn.dataset.time;state.prefs.rest=timer.seconds;save();updateTimer();return;}
+
+      const startBtn=e.target.closest("[data-start]");
+      if(startBtn){startWorkout(startBtn.dataset.start);return;}
+
+      const favBtn=e.target.closest("[data-fav]");
+      if(favBtn){
+        const ex=allExercises().find(x=>x.id===favBtn.dataset.fav);
+        if(ex){ex.favorite=!ex.favorite;save().then(render);toast(ex.favorite?"Adicionado aos favoritos":"Removido dos favoritos");}
+        return;
+      }
+
+      const delBtn=e.target.closest("[data-delete-history]");
+      if(delBtn){deleteHistory(delBtn.dataset.deleteHistory);return;}
+
+      const el=e.target.closest("button");
+      if(!el||!el.id)return;
+      if(el.id==="profileSwitchHome"||el.id==="profileSwitchButton")openProfilePicker();
+      else if(el.id==="quickTimer"||el.id==="sessionTimer")showTimer();
+      else if(el.id==="closeTimer")$("timerModal").classList.add("hidden");
+      else if(el.id==="timerStart")timer.running?(stopTimer(),updateTimer()):startTimer();
+      else if(el.id==="timerReset"){stopTimer();timer.left=timer.seconds;updateTimer();}
+      else if(el.id==="timerPlus"){timer.left+=15;timer.seconds+=15;if(timer.running)timer.end+=15000;updateTimer();}
+      else if(el.id==="timerMinus"){timer.left=Math.max(0,timer.left-15);timer.seconds=Math.max(15,timer.seconds-15);if(timer.running)timer.end-=15000;updateTimer();}
+      else if(el.id==="prevExercise"){if(session&&session.index>0){session.index--;renderSession();}}
+      else if(el.id==="nextExercise"){if(session){const w=state.workouts.find(x=>x.id===session.workoutId);if(session.index<w.exercises.length-1){session.index++;renderSession();}else finishSession();}}
+      else if(el.id==="finishSession")finishSession();
+      else if(el.id==="exitSession"){if(confirm("Sair do treino? O registro desta sessão não será adicionado ao histórico.")){session=null;page("workouts");}}
+      else if(el.id==="clearFilters"){["search","fDay","fMuscle","fWorkout","fEquip","fStatus"].forEach(id=>$(id).value="");renderWorkouts();}
+      else if(el.id==="addExercise")addCustomExercise();
+      else if(el.id==="exportData")exportBackup();
+      else if(el.id==="resetData")resetWorkouts();
+      else if(el.id==="waterAddCustom"){addWater(+$("waterCustom").value);$("waterCustom").value="";}
+      else if(el.id==="waterUndo")undoWater();
+      else if(el.id==="waterGoalBtn")changeWaterGoal();
+    });
+
+    function openDB(){
+      return new Promise(res=>{
+        let done=false;
+        const finish=()=>{if(!done){done=true;res();}};
+        setTimeout(finish,1000);
+        try{
+          const r=indexedDB.open("MeuTreinoRosa",1);
+          r.onupgradeneeded=()=>{r.result.createObjectStore("data");};
+          r.onsuccess=()=>{db=r.result;finish();};
+          r.onerror=finish;
+        }catch(e){finish();}
+      });
+    }
+
+    function save(){
+      if(!db)return Promise.resolve();
+      return new Promise(res=>{
+        try{
+          const tx=db.transaction("data","readwrite"),store=tx.objectStore("data");
+          store.put(state,"state_"+activeProfile);
+          store.put(state.workouts,"shared_workouts");
+          tx.oncomplete=res;
+          tx.onerror=res;
+        }catch(e){res();}
+      });
+    }
+
+    function load(){
+      if(!db)return Promise.resolve();
+      return new Promise(res=>{
+        let done=false;
+        const finish=()=>{if(!done){done=true;res();}};
+        setTimeout(finish,1000);
+        try{
+          const tx=db.transaction("data","readonly"),store=tx.objectStore("data"),
+                pReq=store.get("state_"+activeProfile),lReq=store.get("state"),sReq=store.get("shared_workouts");
+          tx.oncomplete=()=>{
+            state=pReq.result||(activeProfile==="admin"?lReq.result:null)||initial();
+            if(sReq.result)state.workouts=sReq.result;
+            else{const wtx=db.transaction("data","readwrite");wtx.objectStore("data").put(state.workouts,"shared_workouts");}
+            ensureState();
+            finish();
+          };
+          tx.onerror=()=>{state=initial();finish();};
+        }catch(e){state=initial();finish();}
+      });
+    }
+
+    const allExercises=()=>state.workouts.flatMap(w=>w.exercises.map(e=>({...e,workoutId:w.id,workout:w.title,day:w.day,workoutMuscle:w.muscle})));
+
+    function toast(s){$("toast").textContent=s;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2300);}
+
+    function page(name){
+      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+      if($(name))$(name).classList.add("active");
+      document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.page===name));
+      if(name!=="session")render();
+    }
+
+    const todayIndex=()=>{const d=new Date().getDay();return d===0?6:d-1;};
+    const profileNames={admin:"Kenia",friend:"Naty"};
+
+    function applyTheme(profile){
+      const t=THEMES[profile]||THEMES.admin,root=document.documentElement;
+      root.style.setProperty("--primary",t.primary);
+      root.style.setProperty("--secondary",t.secondary);
+      root.style.setProperty("--accent-dark",t.dark);
+      root.style.setProperty("--soft",t.soft);
+      root.style.setProperty("--soft-alt",t.softAlt);
+      root.style.setProperty("--border",t.border);
+      root.style.setProperty("--track",t.track);
+      root.style.setProperty("--ink",t.ink);
+      root.style.setProperty("--muted",t.muted);
+      root.style.setProperty("--shadow",t.shadow);
+      root.style.setProperty("--hero-grad",t.heroGrad);
+      root.style.setProperty("--bg-grad",t.bg);
+      const meta=document.querySelector('meta[name="theme-color"]');
+      if(meta)meta.content=t.meta;
+      document.body.dataset.theme=profile;
+    }
+
+    function updateProfileUI(){
+      const name=profileNames[activeProfile]||"Kenia";
+      applyTheme(activeProfile);
+      $("activeProfileLabel").textContent=name;
+      $("profileNameTitle").textContent=name;
+      $("profileRoleText").textContent=(activeProfile==="admin"?"Administradora":"Usuária")+" • dados salvos neste aparelho";
+      $("addExercise").style.display=activeProfile==="admin"?"":"none";
+      $("resetData").style.display=activeProfile==="admin"?"":"none";
+    }
+
+    function openProfilePicker(){$("profilePicker").classList.remove("hidden");}
+
+    async function selectProfile(profile){
+      if(session){toast("Finalize ou saia do treino antes de trocar de perfil.");return;}
+      activeProfile=profile==="friend"?"friend":"admin";
+      try{localStorage.setItem("meuTreinoPerfilAtivo",activeProfile);}catch(e){}
+      updateProfileUI();
+      $("profilePicker").classList.add("hidden");
+      render();
+      await load();
+      timer.seconds=timer.left=state.prefs.rest||60;
+      $("autoRest").checked=!!state.prefs.autoRest;
+      updateProfileUI();
+      render();
+    }
+    window.selectProfile = selectProfile;
+
+    function dayDate(i){const d=new Date(),diff=(i+1)-(d.getDay()||7);d.setDate(d.getDate()+diff);return d;}
+    function sameWeek(a,b){return a.getFullYear()===b.getFullYear()&&Math.abs((a-b)/86400000)<7;}
+
+    function renderHome(){
+      const idx=todayIndex(),w=state.workouts[idx];
+      $("todayWorkout").textContent=w.title;
+      $("todayMeta").textContent=w.exercises.length?`${w.exercises.length} exercícios • ${w.muscle}`:"Dia de descanso e recuperação";
+      $("todayLabel").textContent=new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+      $("startToday").textContent=w.exercises.length?"♡ Iniciar treino":"♡ Dia de recuperação";
+      $("startToday").onclick=()=>w.exercises.length?startWorkout(w.id):toast("Aproveite seu dia de recuperação ♡");
+      const completed=state.history.filter(h=>sameWeek(new Date(h.date),new Date())).length;
+      $("weekCount").textContent=`${Math.min(completed,6)}/6 concluídos`;
+      $("weekStrip").innerHTML=SHORT.map((d,i)=>`<div class="week-day ${i===idx?"today":""} ${state.history.some(h=>new Date(h.date).toDateString()===dayDate(i).toDateString())?"done":""}">${d}<b>${i+1}</b>${i===6?"♡":""}</div>`).join("");
+      $("totalSessions").textContent=state.history.length;
+      $("totalSets").textContent=state.history.reduce((n,h)=>n+h.sets.filter(s=>s.done).length,0);
+    }
+
+    function options(id,values){
+      const el=$(id),old=el.value;
+      el.innerHTML=el.options[0].outerHTML+values.filter(Boolean).sort().map(v=>`<option>${esc(v)}</option>`).join("");
+      if([...el.options].some(o=>o.value===old))el.value=old;
+    }
+
+    function renderFilters(){
+      options("fDay",DAYS);
+      options("fMuscle",[...new Set(allExercises().map(e=>e.muscle))]);
+      options("fWorkout",state.workouts.map(w=>w.title));
+      options("fEquip",[...new Set(allExercises().map(e=>e.equipment))]);
+    }
+
+    function matches(e){
+      const q=$("search").value.toLowerCase(),day=$("fDay").value,m=$("fMuscle").value,w=$("fWorkout").value,eq=$("fEquip").value,s=$("fStatus").value;
+      const done=!!(session&&session.workoutId===e.workoutId&&session.logs[e.id]?.some(x=>x.done));
+      return (!q||[e.name,e.muscle,e.equipment].join(" ").toLowerCase().includes(q))&&(!day||e.day===day)&&(!m||e.muscle.includes(m))&&(!w||e.workout===w)&&(!eq||e.equipment===eq)&&(!s||(s==="fav"?e.favorite:s==="custom"?e.custom:s==="done"?done:!done));
+    }
+
+    function renderWorkouts(){
+      renderFilters();
+      const list=$("workoutList"),ex=allExercises().filter(matches);
+      $("filterInfo").textContent=`${ex.length} exercício(s) • filtros ativos: ${[$("fDay").value,$("fMuscle").value,$("fWorkout").value,$("fEquip").value,$("fStatus").value].filter(Boolean).length}`;
+      list.innerHTML="";
+      state.workouts.forEach(w=>{
+        const es=ex.filter(e=>e.workoutId===w.id);
+        if(!es.length)return;
+        const card=document.createElement("div");
+        card.className="workout-card";
+        card.innerHTML=`<div class="workout-head"><div><h3>${esc(w.title)}</h3><p>${w.day} • ${w.muscle}</p></div><button type="button" class="start-small" data-start="${w.id}">Iniciar</button></div><div class="exercise-list"></div>`;
+        const inner=card.querySelector(".exercise-list");
+        es.forEach(e=>{
+          const row=document.createElement("div");
+          row.className="exercise-row";
+          row.innerHTML=`<div class="exercise-icon">♧</div><div class="exercise-info"><b>${esc(e.name)}</b><small>${esc(e.muscle)} • ${esc(e.equipment)} • ${e.sets} × ${esc(e.reps)}</small></div><button type="button" class="star ${e.favorite?"on":""}" data-fav="${e.id}">${e.favorite?"♥":"♡"}</button>`;
+          inner.append(row);
+        });
+        list.append(card);
+      });
+    }
+
+    function renderHistory(){
+      const list=$("historyList");
+      if(!state.history.length){
+        list.innerHTML=`<div class="history-empty"><p>♡</p><h3>Nenhum treino registrado</h3><small>Seus treinos concluídos aparecerão aqui.</small></div>`;
+        return;
+      }
+      const history=[...state.history].sort((a,b)=>new Date(b.date)-new Date(a.date));
+      list.innerHTML=history.map(h=>{
+        const date=new Date(h.date),duration=Math.floor((h.duration||0)/60000),sets=h.sets||[],completedSets=sets.filter(s=>s.done).length,percent=Number.isFinite(+h.percent)?Math.max(0,Math.min(100,+h.percent)):0;
+        return `<div class="history-card"><div class="history-head"><div><h3>${esc(h.title||"Treino")}</h3><p>${date.toLocaleDateString("pt-BR")} • ${esc(h.day||"")}</p></div><button type="button" class="delete-history" data-delete-history="${esc(h.id)}" title="Excluir treino">🗑</button></div><div class="history-info"><span>♡ ${h.exerciseCount||0} exercícios</span><span>✓ ${completedSets} séries concluídas</span><span>◷ ${duration} min</span></div><div class="history-progress"><div style="width:${percent}%"></div></div><small>${percent}% concluído</small></div>`;
+      }).join("");
+    }
+
+    function deleteHistory(id){
+      const w=state.history.find(h=>h.id===id);
+      if(!w||!confirm(`Deseja excluir o registro "${w.title||"Treino"}" do histórico?`))return;
+      state.history=state.history.filter(h=>h.id!==id);
+      save().then(()=>{render();toast("Treino excluído do histórico ♡");});
+    }
+
+    function renderProgress(){
+      const month=new Date().getMonth();
+      $("monthlyCount").textContent=state.history.filter(h=>new Date(h.date).getMonth()===month).length;
+      const sets=state.history.flatMap(h=>h.sets.filter(s=>s.done&&+s.weight>0));
+      $("bestSet").textContent=sets.length?Math.max(...sets.map(s=>+s.weight)):"—";
+      $("progressExercise").innerHTML=[...new Set(allExercises().map(e=>e.name))].map(n=>`<option>${esc(n)}</option>`).join("");
+      drawChart();
+      const weekly=Array.from({length:7},(_,i)=>state.history.filter(h=>Math.floor((Date.now()-new Date(h.date).getTime())/604800000)===i).length).reverse();
+      $("weeklyBars").innerHTML=weekly.map((v,i)=>`<div class="bar-item"><div class="bar" style="height:${Math.max(4,v*18)}px"></div>${7-i} sem.</div>`).join("");
+    }
+
+    function drawChart(){
+      const canvas=$("progressChart"),ctx=canvas.getContext("2d"),name=$("progressExercise").value,theme=THEMES[activeProfile]||THEMES.admin;
+      const records=state.history.flatMap(h=>h.sets.filter(s=>s.name===name&&s.done&&+s.weight>0).map(s=>({date:new Date(h.date),weight:+s.weight})));
+      const width=canvas.clientWidth||300,ratio=devicePixelRatio||1;
+      canvas.width=width*ratio;canvas.height=220*ratio;ctx.scale(ratio,ratio);ctx.clearRect(0,0,width,220);
+      if(!records.length){$("chartNote").textContent="Registre cargas durante seus treinos para acompanhar a evolução.";return;}
+      const max=Math.max(...records.map(r=>r.weight)),min=Math.min(...records.map(r=>r.weight)),pad=28;
+      ctx.strokeStyle=theme.border;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,15);ctx.lineTo(pad,185);ctx.lineTo(width-10,185);ctx.stroke();
+      ctx.strokeStyle=theme.primary;ctx.lineWidth=3;ctx.beginPath();
+      records.forEach((r,i)=>{const x=pad+i*(width-pad-18)/Math.max(1,records.length-1),y=175-(r.weight-min)/(max-min||1)*135;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+      ctx.stroke();
+      records.forEach((r,i)=>{const x=pad+i*(width-pad-18)/Math.max(1,records.length-1),y=175-(r.weight-min)/(max-min||1)*135;ctx.fillStyle=theme.secondary;ctx.beginPath();ctx.arc(x,y,4.5,0,7);ctx.fill();});
+      $("chartNote").textContent=`${records.length} registro(s) • melhor carga: ${max} kg`;
+    }
+
+    const waterKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const waterTotal=key=>(state.water[key]||[]).reduce((a,b)=>a+b,0);
+
+    function addWater(ml){
+      ml=Math.round(+ml);
+      if(!(ml>0)||ml>5000){toast("Informe uma quantidade entre 1 e 5000 ml");return;}
+      const key=waterKey();
+      (state.water[key]=state.water[key]||[]).push(ml);
+      save().then(renderWater);
+      const goal=state.prefs.waterGoal||2000;
+      toast(waterTotal(key)>=goal?"Meta de hoje batida! 💧🎉":`+${ml} ml 💧`);
+    }
+
+    function undoWater(){
+      const key=waterKey(),list=state.water[key]||[];
+      if(!list.length){toast("Nada para desfazer");return;}
+      const removed=list.pop();
+      if(!list.length)delete state.water[key];
+      save().then(renderWater);
+      toast(`-${removed} ml removidos`);
+    }
+
+    function changeWaterGoal(){
+      const v=+prompt("Meta diária de água (ml):",state.prefs.waterGoal||2000);
+      if(!(v>=500&&v<=10000)){if(v)toast("Informe uma meta entre 500 e 10000 ml");return;}
+      state.prefs.waterGoal=Math.round(v);
+      save().then(renderWater);
+      toast("Meta atualizada 🎯");
+    }
+
+    function renderWater(){
+      const goal=state.prefs.waterGoal||2000,total=waterTotal(waterKey()),pct=Math.round(total/goal*100);
+      $("waterTotal").textContent=total;
+      $("waterPct").textContent=pct+"%";
+      $("waterFill").style.height=Math.min(100,pct)+"%";
+      $("waterGoalText").textContent=total>=goal?`Meta de ${goal} ml atingida! 🎉`:`Faltam ${goal-total} ml para a meta de ${goal} ml`;
+      let html="";
+      for(let i=6;i>=0;i--){
+        const d=new Date();d.setDate(d.getDate()-i);
+        const t=waterTotal(waterKey(d)),h=Math.min(100,Math.round(t/goal*100));
+        html+=`<div class="water-day ${t>=goal?"goal":""}" title="${t} ml"><div class="col"><i style="height:${h}%"></i></div>${SHORT[(d.getDay()+6)%7]}<b>${t>=1000?(t/1000).toFixed(1)+"L":t}</b></div>`;
+      }
+      $("waterWeek").innerHTML=html;
+    }
+
+    function render(){
+      renderHome();
+      if($("workouts").classList.contains("active"))renderWorkouts();
+      if($("history").classList.contains("active"))renderHistory();
+      if($("progress").classList.contains("active"))renderProgress();
+      if($("water").classList.contains("active"))renderWater();
+    }
+
+    function startWorkout(id){
+      const w=state.workouts.find(x=>x.id===id);
+      if(!w||!w.exercises.length)return;
+      session={workoutId:id,title:w.title,day:w.day,index:0,start:Date.now(),logs:{}};
+      w.exercises.forEach(e=>session.logs[e.id]=Array.from({length:e.sets},()=>({weight:"",reps:"",done:false})));
+      page("session");
+      renderSession();
+    }
+
+    function renderSession(){
+      const w=state.workouts.find(x=>x.id===session.workoutId),e=w.exercises[session.index],logs=session.logs[e.id];
+      $("sessionDay").textContent=session.day.toUpperCase();
+      $("sessionTitle").textContent=session.title;
+      $("sessionCount").textContent=`Exercício ${session.index+1} de ${w.exercises.length}`;
+      $("sessionProgress").style.width=((session.index+1)/w.exercises.length*100)+"%";
+      $("exerciseSession").innerHTML=`<div class="session-exercise"><small>${esc(e.muscle)}</small><h3>${esc(e.name)}</h3><p class="exercise-meta">${esc(e.equipment)} • ${e.sets} séries • ${esc(e.reps)} repetições</p><div class="set-row"><label>Série</label><label>Carga (kg)</label><label>Reps</label><span></span></div>${logs.map((s,i)=>`<div class="set-row ${s.done?"done":""}"><label>${i+1}</label><input type="number" min="0" step="0.5" placeholder="0" value="${esc(s.weight)}" data-weight="${i}"><input type="number" min="0" placeholder="—" value="${esc(s.reps)}" data-reps="${i}"><input type="checkbox" ${s.done?"checked":""} data-done="${i}"></div>`).join("")}<button type="button" class="soft" style="width:100%;margin-top:10px" id="finishSession">✓ Finalizar treino</button></div>`;
+      $("prevExercise").disabled=session.index===0;
+      $("nextExercise").textContent=session.index===w.exercises.length-1?"Concluir →":"Próximo →";
+      $("exerciseSession").querySelectorAll("[data-weight]").forEach(el=>el.oninput=()=>logs[+el.dataset.weight].weight=el.value);
+      $("exerciseSession").querySelectorAll("[data-reps]").forEach(el=>el.oninput=()=>logs[+el.dataset.reps].reps=el.value);
+      $("exerciseSession").querySelectorAll("[data-done]").forEach(el=>el.onchange=()=>{
+        const i=+el.dataset.done;logs[i].done=el.checked;el.closest(".set-row").classList.toggle("done",el.checked);
+        if(el.checked&&state.prefs.autoRest)startTimer(state.prefs.rest);
+      });
+    }
+
+    function finishSession(){
+      if(!session)return;
+      const w=state.workouts.find(x=>x.id===session.workoutId),sets=w.exercises.flatMap(e=>session.logs[e.id].map(s=>({...s,name:e.name,exerciseId:e.id}))),done=sets.filter(s=>s.done).length;
+      state.history.push({id:uid(),date:new Date().toISOString(),title:w.title,day:w.day,duration:Date.now()-session.start,exerciseCount:w.exercises.length,sets,percent:Math.round(done/Math.max(1,sets.length)*100)});
+      session=null;
+      save().then(()=>{page("history");toast("Treino salvo no histórico ♡");});
+    }
+
+    function addCustomExercise(){
+      if(activeProfile!=="admin"){toast("Somente a administradora pode alterar a ficha.");return;}
+      const name=prompt("Nome do exercício:");if(!name)return;
+      const day=prompt("Dia (Segunda-feira, Terça-feira, Quarta-feira, Quinta-feira, Sexta-feira ou Sábado):","Segunda-feira");
+      const w=state.workouts.find(x=>x.day.toLowerCase()===day?.toLowerCase());
+      if(!w){toast("Dia não encontrado");return;}
+      const muscle=prompt("Grupo muscular:","Musculação")||"Musculação";
+      const equipment=prompt("Equipamento:","Peso livre")||"Peso livre";
+      const sets=Math.max(1,+prompt("Número de séries:","3")||3);
+      const reps=prompt("Repetições:","12 a 15")||"12 a 15";
+      w.exercises.push({id:uid(),name,muscle,equipment,sets,reps,favorite:false,custom:true});
+      save().then(renderWorkouts);toast("Exercício adicionado");
+    }
+
+    function exportBackup(){
+      const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);a.download="meu-treino-"+activeProfile+"-backup.json";a.click();URL.revokeObjectURL(a.href);
+    }
+
+    function resetWorkouts(){
+      if(activeProfile!=="admin"){toast("Somente a administradora pode restaurar a ficha.");return;}
+      if(confirm("Restaurar a ficha original? Seu histórico e o registro de água serão preservados.")){
+        const hist=state.history,water=state.water,goal=state.prefs.waterGoal;
+        state=initial();state.history=hist;state.water=water;state.prefs.waterGoal=goal||2000;
+        save().then(render);toast("Ficha original restaurada");
+      }
+    }
+
+    ["search","fDay","fMuscle","fWorkout","fEquip","fStatus"].forEach(id=>$(id).addEventListener(id==="search"?"input":"change",renderWorkouts));
+    $("progressExercise").onchange=drawChart;
+    $("autoRest").onchange=()=>{state.prefs.autoRest=$("autoRest").checked;save();};
+    $("importData").onchange=async ev=>{
+      const f=ev.target.files[0];if(!f)return;
+      try{
+        const data=JSON.parse(await f.text());
+        if(!data.workouts||!data.history)throw Error();
+        if(confirm("Importar backup e substituir a ficha e os dados atuais?")){state=data;ensureState();await save();render();toast("Backup restaurado");}
+      }catch(e){alert("Arquivo JSON inválido.");}
+      ev.target.value="";
+    };
+
+    function showTimer(){$("timerModal").classList.remove("hidden");updateTimer();}
+    function updateTimer(){$("timerDisplay").textContent=`${String(Math.floor(timer.left/60)).padStart(2,"0")}:${String(timer.left%60).padStart(2,"0")}`;$("timerStart").textContent=timer.running?"Pausar":"Iniciar";}
+    function startTimer(sec=timer.left){
+      timer.left=Math.max(0,sec);timer.running=true;timer.end=Date.now()+timer.left*1000;
+      if(timerInterval)clearInterval(timerInterval);
+      timerInterval=setInterval(()=>{timer.left=Math.max(0,Math.ceil((timer.end-Date.now())/1000));updateTimer();if(timer.left<=0){clearInterval(timerInterval);timer.running=false;timerInterval=null;timerDone();}},250);
+      updateTimer();
+    }
+    function timerDone(){timer.running=false;updateTimer();toast("Descanso concluído! ♡");if("vibrate"in navigator)navigator.vibrate([200,100,200]);}
+    function stopTimer(){if(timerInterval)clearInterval(timerInterval);timerInterval=null;timer.running=false;}
+
+    try{activeProfile=localStorage.getItem("meuTreinoPerfilAtivo")||"admin";}catch(e){activeProfile="admin";}
+    updateProfileUI();
+    render();
+    openProfilePicker();
+
+    (async()=>{
+      await openDB();
+      await load();
+      ensureState();
+      timer.seconds=timer.left=state.prefs.rest||60;
+      $("autoRest").checked=!!state.prefs.autoRest;
+      updateProfileUI();
+      render();
+    })();
+  })();
+  </script>
+</body>
+</html>
