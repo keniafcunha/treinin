@@ -3,24 +3,44 @@ const DAYS=["Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-
 const seed=[
 ["Segunda-feira","Treino 1: Quadríceps","Quadríceps",[
 ["Hack Squat","Quadríceps","Hack squat",3,"12 a 15"],["Leg Press","Quadríceps","Leg press",3,"12 a 15"],["Agachamento Smith","Quadríceps","Smith",3,"12 a 15"],["Afundo","Quadríceps/Glúteos","Peso livre",3,"12 a 15"],["Cadeira Extensora","Quadríceps","Máquina",3,"12 a 15"],["Cadeira Adutora","Adutores","Máquina",3,"12 a 15"],["Prancha alta com elevação de joelho","Abdominal","Peso corporal",3,"30 a 45 s"]]],
-
 ["Terça-feira","Treino 2: Costas","Costas",[
 ["Remada Curvada","Costas","Barra",3,"12 a 15"],["Remada Baixa","Costas","Cabo",3,"12 a 15"],["Puxada Alta Frente","Costas","Polia",3,"12 a 15"],["Pulldown Neutro","Costas","Polia",3,"12 a 15"],["Remada Unilateral","Costas","Halter",3,"12 a 15"],["Face Pull","Costas/Deltoide posterior","Cabo",3,"15 a 20"],["Prancha lateral","Abdominal","Peso corporal",3,"30 a 45 s por lado"]]],
-
 ["Quarta-feira","Treino 3: Posteriores","Posteriores",[
 ["Stiff","Posteriores/Glúteos","Barra ou halteres",3,"12 a 15"],["Agachamento Búlgaro","Posteriores/Glúteos","Halteres",3,"12 a 15"],["Prensa Unilateral","Quadríceps/Posteriores","Leg press",3,"12 a 15"],["Mesa Flexora","Posteriores","Máquina",3,"12 a 15"],["Flexora Sentada","Posteriores","Máquina",3,"12 a 15"],["Panturrilha em Pé","Panturrilhas","Máquina",4,"15 a 20"],["Elevação de pernas suspensa","Abdominal","Barra",3,"12 a 15"]]],
-
 ["Quinta-feira","Treino 4: Ombro e Peito","Ombro e Peito",[
 ["Supino Inclinado","Peito","Halteres ou máquina",3,"12 a 15"],["Desenvolvimento com Halteres","Ombros","Halteres",3,"12 a 15"],["Voador","Peito","Máquina",3,"12 a 15"],["Crucifixo","Peito","Halteres",3,"12 a 15"],["Elevação Lateral","Ombros","Halteres",3,"12 a 15"],["Elevação Frontal","Ombros","Halteres",3,"12 a 15"],["Prancha lateral com elevação de quadril","Abdominal","Peso corporal",3,"30 a 45 s por lado"]]],
-
 ["Sexta-feira","Treino 5: Glúteos","Glúteos",[
 ["Hip Thrust","Glúteos","Barra ou máquina",3,"12 a 15"],["Agachamento Búlgaro","Glúteos","Halteres",3,"12 a 15"],["Elevação Pélvica Unilateral","Glúteos","Peso corporal/halter",3,"12 a 15"],["Glúteo no Cabo","Glúteos","Cabo",3,"12 a 15"],["Coice no Cabo","Glúteos","Cabo",3,"12 a 15"],["Cadeira Abdutora","Glúteos/Abdutores","Máquina",3,"12 a 15"],["Crunch","Abdominal","Peso corporal",3,"20 a 30"]]],
-
 ["Sábado","Treino 6: Bíceps e Tríceps","Bíceps e Tríceps",[
 ["Rosca Direta","Bíceps","Barra",3,"12 a 15"],["Tríceps na Polia","Tríceps","Polia",3,"12 a 15"],["Rosca Martelo","Bíceps","Halteres",3,"12 a 15"],["Tríceps Francês","Tríceps","Halter",3,"12 a 15"],["Rosca Concentrada","Bíceps","Halter",3,"12 a 15"],["Tríceps Coice","Tríceps","Halter",3,"12 a 15"],["Prancha com toque no ombro","Abdominal","Peso corporal",3,"30 a 45 s"]]],
-
 ["Domingo","Descanso / Recuperação","Recuperação",[]]
 ];
+
+/* =========================================
+   TEMAS POR PERFIL
+   ========================================= */
+const THEMES={
+    admin:{ /* Kenia: lilás + azul bebê */
+        primary:"#b79ce8",
+        secondary:"#8ecbf0",
+        dark:"#7a5cc0",
+        soft:"#efe8fb",
+        border:"#d9ccf0",
+        track:"#e6eefb",
+        bg:"linear-gradient(160deg,#f3edff 0%,#eaf5ff 100%)",
+        meta:"#b79ce8"
+    },
+    friend:{ /* Naty: rosa + verde água */
+        primary:"#d878a5",
+        secondary:"#6fd3c1",
+        dark:"#b3447c",
+        soft:"#fde8f1",
+        border:"#e9c9d9",
+        track:"#f4e5ec",
+        bg:"linear-gradient(160deg,#fff0f6 0%,#e6faf6 100%)",
+        meta:"#d878a5"
+    }
+};
 
 const uid=()=>Math.random().toString(36).slice(2,10);
 
@@ -42,8 +62,17 @@ const initial=()=>({
         }))
     })),
     history:[],
-    prefs:{rest:60,autoRest:false}
+    water:{},
+    prefs:{rest:60,autoRest:false,waterGoal:2000}
 });
+
+/* Garante que dados antigos (sem água) continuem funcionando */
+function ensureState(){
+    if(!state.history)state.history=[];
+    if(!state.water)state.water={};
+    if(!state.prefs)state.prefs={rest:60,autoRest:false};
+    if(!state.prefs.waterGoal)state.prefs.waterGoal=2000;
+}
 
 let db,
     state=initial(),
@@ -55,16 +84,8 @@ let db,
 function openDB(){
     return new Promise((res,rej)=>{
         let r=indexedDB.open("MeuTreinoRosa",1);
-
-        r.onupgradeneeded=()=>{
-            r.result.createObjectStore("data");
-        };
-
-        r.onsuccess=()=>{
-            db=r.result;
-            res();
-        };
-
+        r.onupgradeneeded=()=>{r.result.createObjectStore("data");};
+        r.onsuccess=()=>{db=r.result;res();};
         r.onerror=()=>rej(r.error);
     });
 }
@@ -73,10 +94,8 @@ function save(){
     return new Promise((res,rej)=>{
         let tx=db.transaction("data","readwrite"),
             store=tx.objectStore("data");
-
         store.put(state,"state_"+activeProfile);
         store.put(state.workouts,"shared_workouts");
-
         tx.oncomplete=res;
         tx.onerror=()=>rej(tx.error);
     });
@@ -103,14 +122,11 @@ function load(){
                     wtx.objectStore("data").put(state.workouts,"shared_workouts");
                 }
 
+                ensureState();
                 res();
             };
 
-            tx.onerror=()=>{
-                state=initial();
-                res();
-            };
-
+            tx.onerror=()=>{state=initial();res();};
         }catch(e){
             state=initial();
             res();
@@ -133,21 +149,15 @@ const allExercises=()=>state.workouts.flatMap(w=>
 function toast(s){
     $("toast").textContent=s;
     $("toast").classList.add("show");
-
     setTimeout(()=>$("toast").classList.remove("show"),2300);
 }
 
 function page(name){
-    document.querySelectorAll(".page").forEach(p=>
-        p.classList.remove("active")
-    );
-
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
     $(name).classList.add("active");
-
     document.querySelectorAll(".nav").forEach(n=>
         n.classList.toggle("active",n.dataset.page===name)
     );
-
     if(name!=="session")render();
 }
 
@@ -160,32 +170,49 @@ const todayIndex=()=>{
     return d===0?6:d-1;
 };
 
-const profileNames={
-    admin:"Kenia",
-    friend:"Naty"
-};
+const profileNames={admin:"Kenia",friend:"Naty"};
+
+/* =========================================
+   APLICAR TEMA DO PERFIL
+   ========================================= */
+function applyTheme(profile){
+    const t=THEMES[profile]||THEMES.friend,
+        root=document.documentElement;
+
+    root.style.setProperty("--primary",t.primary);
+    root.style.setProperty("--secondary",t.secondary);
+    root.style.setProperty("--accent-dark",t.dark);
+    root.style.setProperty("--soft",t.soft);
+    root.style.setProperty("--border",t.border);
+    root.style.setProperty("--track",t.track);
+    root.style.setProperty("--bg-grad",t.bg);
+
+    let meta=document.querySelector('meta[name="theme-color"]');
+    if(!meta){
+        meta=document.createElement("meta");
+        meta.name="theme-color";
+        document.head.appendChild(meta);
+    }
+    meta.content=t.meta;
+
+    document.body.dataset.theme=profile;
+}
 
 function updateProfileUI(){
     const name=profileNames[activeProfile]||"Naty";
 
-    if($("activeProfileLabel"))
-        $("activeProfileLabel").textContent=name;
+    applyTheme(activeProfile);
 
-    if($("profileNameTitle"))
-        $("profileNameTitle").textContent=name;
-
+    if($("activeProfileLabel"))$("activeProfileLabel").textContent=name;
+    if($("profileNameTitle"))$("profileNameTitle").textContent=name;
     if($("profileRoleText"))
         $("profileRoleText").textContent=
             (activeProfile==="admin"?"Administradora":"Usuária")+
             " • dados salvos neste aparelho";
-
     if($("addExercise"))
-        $("addExercise").style.display=
-            activeProfile==="admin"?"":"none";
-
+        $("addExercise").style.display=activeProfile==="admin"?"":"none";
     if($("resetData"))
-        $("resetData").style.display=
-            activeProfile==="admin"?"":"none";
+        $("resetData").style.display=activeProfile==="admin"?"":"none";
 }
 
 function openProfilePicker(){
@@ -200,20 +227,15 @@ async function selectProfile(profile){
 
     activeProfile=profile==="friend"?"friend":"admin";
 
-    try{
-        localStorage.setItem("meuTreinoPerfilAtivo",activeProfile);
-    }catch(e){}
+    try{localStorage.setItem("meuTreinoPerfilAtivo",activeProfile);}catch(e){}
 
     await load();
 
     timer.seconds=timer.left=state.prefs.rest||60;
-
     $("autoRest").checked=!!state.prefs.autoRest;
 
     updateProfileUI();
-
     $("profilePicker").classList.add("hidden");
-
     render();
 }
 
@@ -268,7 +290,6 @@ function renderHome(){
 function dayDate(i){
     let d=new Date(),
         diff=(i+1)-(d.getDay()||7);
-
     d.setDate(d.getDate()+diff);
     return d;
 }
@@ -283,27 +304,18 @@ function options(id,values){
         old=el.value;
 
     el.innerHTML=el.options[0].outerHTML+
-        values.filter(Boolean).sort().map(v=>
-            `<option>${esc(v)}</option>`
-        ).join("");
+        values.filter(Boolean).sort().map(v=>`<option>${esc(v)}</option>`).join("");
 
-    if([...el.options].some(o=>o.value===old))
-        el.value=old;
+    if([...el.options].some(o=>o.value===old))el.value=old;
 }
 
 function renderFilters(){
     options("fDay",DAYS);
-
-    options("fMuscle",[
-        ...new Set(allExercises().map(e=>e.muscle))
-    ]);
-
+    options("fMuscle",[...new Set(allExercises().map(e=>e.muscle))]);
     options("fWorkout",state.workouts.map(w=>w.title));
-
-    options("fEquip",[
-        ...new Set(allExercises().map(e=>e.equipment))
-    ]);
+    options("fEquip",[...new Set(allExercises().map(e=>e.equipment))]);
 }
+
 function matches(e){
     let q=$("search").value.toLowerCase(),
         day=$("fDay").value,
@@ -334,24 +346,16 @@ function renderWorkouts(){
 
     $("filterInfo").textContent=
         `${ex.length} exercício(s) • filtros ativos: ${
-            [
-                $("fDay").value,
-                $("fMuscle").value,
-                $("fWorkout").value,
-                $("fEquip").value,
-                $("fStatus").value
-            ].filter(Boolean).length
+            [$("fDay").value,$("fMuscle").value,$("fWorkout").value,$("fEquip").value,$("fStatus").value].filter(Boolean).length
         }`;
 
     list.innerHTML="";
 
     state.workouts.forEach(w=>{
         let es=ex.filter(e=>e.workoutId===w.id);
-
         if(!es.length)return;
 
         let card=document.createElement("div");
-
         card.className="workout-card";
 
         card.innerHTML=`
@@ -360,9 +364,7 @@ function renderWorkouts(){
                     <h3>${esc(w.title)}</h3>
                     <p>${w.day} • ${w.muscle}</p>
                 </div>
-                <button class="start-small" data-start="${w.id}">
-                    Iniciar
-                </button>
+                <button class="start-small" data-start="${w.id}">Iniciar</button>
             </div>
             <div class="exercise-list"></div>
         `;
@@ -371,23 +373,15 @@ function renderWorkouts(){
 
         es.forEach(e=>{
             let row=document.createElement("div");
-
             row.className="exercise-row";
-
             row.innerHTML=`
                 <div class="exercise-icon">♧</div>
                 <div class="exercise-info">
                     <b>${esc(e.name)}</b>
-                    <small>
-                        ${esc(e.muscle)} • ${esc(e.equipment)}
-                        • ${e.sets} × ${esc(e.reps)}
-                    </small>
+                    <small>${esc(e.muscle)} • ${esc(e.equipment)} • ${e.sets} × ${esc(e.reps)}</small>
                 </div>
-                <button class="star ${e.favorite?"on":""}" data-fav="${e.id}">
-                    ${e.favorite?"♥":"♡"}
-                </button>
+                <button class="star ${e.favorite?"on":""}" data-fav="${e.id}">${e.favorite?"♥":"♡"}</button>
             `;
-
             inner.append(row);
         });
 
@@ -401,15 +395,9 @@ function renderWorkouts(){
     list.querySelectorAll("[data-fav]").forEach(b=>
         b.onclick=()=>{
             let e=findExercise(b.dataset.fav);
-
             e.favorite=!e.favorite;
-
             save().then(render);
-
-            toast(e.favorite?
-                "Adicionado aos favoritos":
-                "Removido dos favoritos"
-            );
+            toast(e.favorite?"Adicionado aos favoritos":"Removido dos favoritos");
         }
     );
 }
@@ -423,148 +411,78 @@ function findExercise(id){
    ========================================= */
 
 function renderHistory(){
-
-    let list=$("historyList")||
-        $("historyListContainer")||
-        $("historyRecords")||
-        $("historyContent");
+    let list=$("historyList")||$("historyListContainer")||$("historyRecords")||$("historyContent");
 
     if(!list){
-
         const pageEl=$("history");
-
         if(!pageEl)return;
-
         list=document.createElement("div");
-
         list.id="historyList";
-
         pageEl.appendChild(list);
     }
 
     if(!state.history.length){
-
         list.innerHTML=`
             <div class="history-empty">
                 <p>♡</p>
                 <h3>Nenhum treino registrado</h3>
-                <small>
-                    Seus treinos concluídos aparecerão aqui.
-                </small>
+                <small>Seus treinos concluídos aparecerão aqui.</small>
             </div>
         `;
-
         return;
     }
 
-    const history=[...state.history].sort(
-        (a,b)=>new Date(b.date)-new Date(a.date)
-    );
+    const history=[...state.history].sort((a,b)=>new Date(b.date)-new Date(a.date));
 
     list.innerHTML=history.map(h=>{
-
-        const date=new Date(h.date);
-
-        const duration=Math.floor((h.duration||0)/60000);
-
-        const sets=h.sets||[];
-
-        const completedSets=sets.filter(s=>s.done).length;
-
-        const percent=Number.isFinite(+h.percent)?
-            Math.max(0,Math.min(100,+h.percent)):
-            0;
+        const date=new Date(h.date),
+            duration=Math.floor((h.duration||0)/60000),
+            sets=h.sets||[],
+            completedSets=sets.filter(s=>s.done).length,
+            percent=Number.isFinite(+h.percent)?Math.max(0,Math.min(100,+h.percent)):0;
 
         return `
             <div class="history-card">
-
                 <div class="history-head">
-
                     <div>
                         <h3>${esc(h.title||"Treino")}</h3>
-                        <p>
-                            ${date.toLocaleDateString("pt-BR")}
-                            • ${esc(h.day||"")}
-                        </p>
+                        <p>${date.toLocaleDateString("pt-BR")} • ${esc(h.day||"")}</p>
                     </div>
-
-                    <button
-                        type="button"
-                        class="delete-history"
-                        data-delete-history="${esc(h.id)}"
-                        title="Excluir treino"
-                        aria-label="Excluir treino"
-                    >
-                        🗑
-                    </button>
-
+                    <button type="button" class="delete-history" data-delete-history="${esc(h.id)}" title="Excluir treino" aria-label="Excluir treino">🗑</button>
                 </div>
-
                 <div class="history-info">
                     <span>♡ ${h.exerciseCount||0} exercícios</span>
                     <span>✓ ${completedSets} séries concluídas</span>
                     <span>◷ ${duration} min</span>
                 </div>
-
-                <div class="history-progress">
-                    <div style="width:${percent}%"></div>
-                </div>
-
+                <div class="history-progress"><div style="width:${percent}%"></div></div>
                 <small>${percent}% concluído</small>
-
             </div>
         `;
-
     }).join("");
 
-    /* Ativa os botões de exclusão */
-
     list.querySelectorAll("[data-delete-history]").forEach(button=>{
-
-        button.onclick=()=>{
-            deleteHistory(button.dataset.deleteHistory);
-        };
-
+        button.onclick=()=>deleteHistory(button.dataset.deleteHistory);
     });
-
 }
 
-/* =========================================
-   EXCLUIR TREINO DO HISTÓRICO
-   ========================================= */
-
 function deleteHistory(id){
-
     const workout=state.history.find(h=>h.id===id);
-
     if(!workout)return;
 
-    const confirmed=confirm(
-        `Deseja excluir o registro "${workout.title||"Treino"}" do histórico?`
-    );
-
-    if(!confirmed)return;
+    if(!confirm(`Deseja excluir o registro "${workout.title||"Treino"}" do histórico?`))return;
 
     const previousHistory=state.history;
-
     state.history=state.history.filter(h=>h.id!==id);
 
     save().then(()=>{
-
         render();
-
         toast("Treino excluído do histórico ♡");
-
     }).catch(()=>{
-
         state.history=previousHistory;
-
         render();
-
         toast("Não foi possível excluir o treino.");
-
     });
-
 }
 
 /* =========================================
@@ -572,27 +490,18 @@ function deleteHistory(id){
    ========================================= */
 
 function renderProgress(){
-
     let month=new Date().getMonth();
 
     $("monthlyCount").textContent=
-        state.history.filter(h=>
-            new Date(h.date).getMonth()===month
-        ).length;
+        state.history.filter(h=>new Date(h.date).getMonth()===month).length;
 
-    let sets=state.history.flatMap(h=>
-        h.sets.filter(s=>s.done&&+s.weight>0)
-    );
+    let sets=state.history.flatMap(h=>h.sets.filter(s=>s.done&&+s.weight>0));
 
-    $("bestSet").textContent=sets.length?
-        Math.max(...sets.map(s=>+s.weight)):
-        "—";
+    $("bestSet").textContent=sets.length?Math.max(...sets.map(s=>+s.weight)):"—";
 
     let ex=allExercises();
 
-    $("progressExercise").innerHTML=[
-        ...new Set(ex.map(e=>e.name))
-    ].map(n=>
+    $("progressExercise").innerHTML=[...new Set(ex.map(e=>e.name))].map(n=>
         `<option>${esc(n)}</option>`
     ).join("");
 
@@ -601,11 +510,7 @@ function renderProgress(){
     let weekly=Array.from({length:7},(_,i)=>
         state.history.filter(h=>{
             let d=new Date(h.date);
-
-            return Math.floor(
-                (Date.now()-d.getTime())/604800000
-            )===i;
-
+            return Math.floor((Date.now()-d.getTime())/604800000)===i;
         }).length
     ).reverse();
 
@@ -618,15 +523,13 @@ function renderProgress(){
 }
 
 function drawChart(){
-
     let canvas=$("progressChart"),
         ctx=canvas.getContext("2d"),
-        name=$("progressExercise").value;
+        name=$("progressExercise").value,
+        theme=THEMES[activeProfile]||THEMES.friend;
 
     let records=state.history.flatMap(h=>
-        h.sets.filter(s=>
-            s.name===name&&s.done&&+s.weight>0
-        ).map(s=>({
+        h.sets.filter(s=>s.name===name&&s.done&&+s.weight>0).map(s=>({
             date:new Date(h.date),
             weight:+s.weight
         }))
@@ -642,10 +545,7 @@ function drawChart(){
     ctx.clearRect(0,0,width,220);
 
     if(!records.length){
-
-        $("chartNote").textContent=
-            "Registre cargas durante seus treinos para acompanhar a evolução.";
-
+        $("chartNote").textContent="Registre cargas durante seus treinos para acompanhar a evolução.";
         return;
     }
 
@@ -653,66 +553,243 @@ function drawChart(){
         min=Math.min(...records.map(r=>r.weight)),
         pad=28;
 
-    ctx.strokeStyle="#e9c9d9";
+    ctx.strokeStyle=theme.border;
     ctx.lineWidth=1;
-
     ctx.beginPath();
     ctx.moveTo(pad,15);
     ctx.lineTo(pad,185);
     ctx.lineTo(width-10,185);
     ctx.stroke();
 
-    ctx.strokeStyle="#d878a5";
+    ctx.strokeStyle=theme.primary;
     ctx.lineWidth=3;
-
     ctx.beginPath();
 
     records.forEach((r,i)=>{
-
         let x=pad+i*(width-pad-18)/Math.max(1,records.length-1),
             y=175-(r.weight-min)/(max-min||1)*135;
-
         if(i===0)ctx.moveTo(x,y);
         else ctx.lineTo(x,y);
-
     });
 
     ctx.stroke();
 
     records.forEach((r,i)=>{
-
         let x=pad+i*(width-pad-18)/Math.max(1,records.length-1),
             y=175-(r.weight-min)/(max-min||1)*135;
-
-        ctx.fillStyle="#d878a5";
-
+        ctx.fillStyle=theme.secondary;
         ctx.beginPath();
-        ctx.arc(x,y,4,0,7);
+        ctx.arc(x,y,4.5,0,7);
         ctx.fill();
-
     });
 
-    $("chartNote").textContent=
-        `${records.length} registro(s) • melhor carga: ${max} kg`;
+    $("chartNote").textContent=`${records.length} registro(s) • melhor carga: ${max} kg`;
+}
+
+/* =========================================
+   ÁGUA 💧
+   ========================================= */
+
+const waterKey=(d=new Date())=>
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+const waterTotal=key=>(state.water[key]||[]).reduce((a,b)=>a+b,0);
+
+/* Cria a aba "Água" e o botão do menu automaticamente */
+function ensureWaterUI(){
+    if($("water"))return;
+
+    const ref=$("history")||document.querySelector(".page");
+    if(!ref)return;
+
+    const sec=document.createElement("section");
+    sec.id="water";
+    sec.className="page";
+    sec.innerHTML=`
+        <div class="water-card">
+            <p class="water-title">💧 Hidratação de hoje</p>
+            <div class="water-glass">
+                <div class="water-fill" id="waterFill"></div>
+                <span id="waterPct">0%</span>
+            </div>
+            <h2 class="water-total"><span id="waterTotal">0</span> ml</h2>
+            <small id="waterGoalText"></small>
+            <div class="water-quick">
+                <button type="button" data-water="200">+200 ml</button>
+                <button type="button" data-water="300">+300 ml</button>
+                <button type="button" data-water="500">+500 ml</button>
+                <button type="button" data-water="1000">+1 L</button>
+            </div>
+            <div class="water-custom">
+                <input type="number" id="waterCustom" min="1" max="5000" step="50" placeholder="Outra quantidade (ml)">
+                <button type="button" id="waterAddCustom">Adicionar</button>
+            </div>
+            <div class="water-actions">
+                <button type="button" id="waterUndo">↶ Desfazer último</button>
+                <button type="button" id="waterGoalBtn">🎯 Alterar meta</button>
+            </div>
+        </div>
+        <div class="water-card">
+            <p class="water-title">Últimos 7 dias</p>
+            <div class="water-week" id="waterWeek"></div>
+        </div>
+    `;
+    ref.parentElement.appendChild(sec);
+
+    const css=document.createElement("style");
+    css.id="themeAndWaterStyles";
+    css.textContent=`
+        body{background:var(--bg-grad,#fff0f6) fixed !important}
+        .nav.active{color:var(--accent-dark) !important}
+        .start-small,#startToday{background:linear-gradient(135deg,var(--primary),var(--secondary)) !important;color:#fff !important;border-color:transparent !important}
+        .star.on{color:var(--primary) !important}
+        .week-day.today{border-color:var(--primary) !important}
+        .week-day.done{background:var(--soft) !important}
+        .exercise-icon{background:var(--soft) !important;color:var(--accent-dark) !important}
+        #sessionProgress,.bar{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
+        .history-progress{background:var(--track) !important}
+        .history-progress>div{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
+        .delete-history{background:var(--soft) !important;color:var(--accent-dark) !important}
+
+        .water-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+        .water-title{margin:0 0 12px;font-weight:700;color:var(--accent-dark)}
+        .water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--primary);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--soft)}
+        .water-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--secondary),var(--primary));transition:height .6s ease}
+        .water-glass span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:800;color:var(--accent-dark);text-shadow:0 0 6px #fff}
+        .water-total{margin:4px 0;color:var(--accent-dark)}
+        .water-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0 10px}
+        .water-card button{border:0;border-radius:14px;padding:12px;font-weight:700;cursor:pointer;background:var(--soft);color:var(--accent-dark)}
+        .water-quick button,#waterAddCustom{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff}
+        .water-custom{display:flex;gap:8px;margin-bottom:10px}
+        .water-custom input{flex:1;min-width:0;border:1px solid var(--border);border-radius:14px;padding:12px;font-size:1em}
+        .water-actions{display:flex;gap:8px}
+        .water-actions button{flex:1}
+        .water-week{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:130px}
+        .water-day{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.72em}
+        .water-day .col{width:100%;max-width:30px;height:90px;display:flex;align-items:flex-end;background:var(--track);border-radius:8px;overflow:hidden;margin-bottom:4px}
+        .water-day .col i{display:block;width:100%;background:linear-gradient(180deg,var(--secondary),var(--primary));border-radius:8px}
+        .water-day.goal .col{outline:2px solid var(--secondary)}
+    `;
+    document.head.appendChild(css);
+
+    /* Botão no menu inferior */
+    const refNav=[...document.querySelectorAll(".nav")].pop();
+    if(refNav){
+        const b=refNav.cloneNode(true);
+        b.dataset.page="water";
+        b.classList.remove("active");
+        const kids=b.children;
+        if(kids.length>=2){
+            kids[0].textContent="💧";
+            kids[kids.length-1].textContent="Água";
+        }else{
+            b.textContent="💧 Água";
+        }
+        b.onclick=()=>page("water");
+        refNav.parentElement.appendChild(b);
+    }
+
+    document.querySelectorAll("[data-water]").forEach(b=>
+        b.onclick=()=>addWater(+b.dataset.water)
+    );
+
+    $("waterAddCustom").onclick=()=>{
+        addWater(+$("waterCustom").value);
+        $("waterCustom").value="";
+    };
+
+    $("waterUndo").onclick=()=>{
+        const key=waterKey(),
+            list=state.water[key]||[];
+
+        if(!list.length){toast("Nada para desfazer");return;}
+
+        const removed=list.pop();
+        if(!list.length)delete state.water[key];
+
+        save().then(renderWater);
+        toast(`-${removed} ml removidos`);
+    };
+
+    $("waterGoalBtn").onclick=()=>{
+        const v=+prompt("Meta diária de água (ml):",state.prefs.waterGoal||2000);
+        if(!(v>=500&&v<=10000)){
+            if(v)toast("Informe uma meta entre 500 e 10000 ml");
+            return;
+        }
+        state.prefs.waterGoal=Math.round(v);
+        save().then(renderWater);
+        toast("Meta atualizada 🎯");
+    };
+}
+
+function addWater(ml){
+    ml=Math.round(+ml);
+
+    if(!(ml>0)||ml>5000){
+        toast("Informe uma quantidade entre 1 e 5000 ml");
+        return;
+    }
+
+    const key=waterKey();
+    (state.water[key]=state.water[key]||[]).push(ml);
+
+    save().then(renderWater);
+
+    const goal=state.prefs.waterGoal||2000;
+    toast(waterTotal(key)>=goal?"Meta de hoje batida! 💧🎉":`+${ml} ml 💧`);
+}
+
+function renderWater(){
+    if(!$("water"))return;
+
+    const goal=state.prefs.waterGoal||2000,
+        total=waterTotal(waterKey()),
+        pct=Math.round(total/goal*100);
+
+    $("waterTotal").textContent=total;
+    $("waterPct").textContent=pct+"%";
+    $("waterFill").style.height=Math.min(100,pct)+"%";
+
+    $("waterGoalText").textContent=total>=goal?
+        `Meta de ${goal} ml atingida! 🎉`:
+        `Faltam ${goal-total} ml para a meta de ${goal} ml`;
+
+    let html="";
+
+    for(let i=6;i>=0;i--){
+        const d=new Date();
+        d.setDate(d.getDate()-i);
+
+        const t=waterTotal(waterKey(d)),
+            h=Math.min(100,Math.round(t/goal*100));
+
+        html+=`
+            <div class="water-day ${t>=goal?"goal":""}" title="${t} ml">
+                <div class="col"><i style="height:${h}%"></i></div>
+                ${SHORT[(d.getDay()+6)%7]}
+                <b>${t>=1000?(t/1000).toFixed(1)+"L":t}</b>
+            </div>
+        `;
+    }
+
+    $("waterWeek").innerHTML=html;
 }
 
 function render(){
-
     renderHome();
-
-    if($("workouts").classList.contains("active"))
-        renderWorkouts();
-
-    if($("history").classList.contains("active"))
-        renderHistory();
-
-    if($("progress").classList.contains("active"))
-        renderProgress();
+    if($("workouts").classList.contains("active"))renderWorkouts();
+    if($("history").classList.contains("active"))renderHistory();
+    if($("progress").classList.contains("active"))renderProgress();
+    if($("water")&&$("water").classList.contains("active"))renderWater();
 }
+
+/* =========================================
+   SESSÃO DE TREINO
+   ========================================= */
+
 function startWorkout(id){
-
     let w=state.workouts.find(x=>x.id===id);
-
     if(!w||!w.exercises.length)return;
 
     session={
@@ -725,52 +802,29 @@ function startWorkout(id){
     };
 
     w.exercises.forEach(e=>
-        session.logs[e.id]=Array.from(
-            {length:e.sets},
-            ()=>({
-                weight:"",
-                reps:"",
-                done:false
-            })
-        )
+        session.logs[e.id]=Array.from({length:e.sets},()=>({weight:"",reps:"",done:false}))
     );
 
     page("session");
-
     renderSession();
 }
 
 function renderSession(){
-
-    let w=state.workouts.find(x=>
-        x.id===session.workoutId
-    );
+    let w=state.workouts.find(x=>x.id===session.workoutId);
 
     let e=w.exercises[session.index],
         logs=session.logs[e.id];
 
     $("sessionDay").textContent=session.day.toUpperCase();
-
     $("sessionTitle").textContent=session.title;
-
-    $("sessionCount").textContent=
-        `Exercício ${session.index+1} de ${w.exercises.length}`;
-
-    $("sessionProgress").style.width=
-        ((session.index+1)/w.exercises.length*100)+"%";
+    $("sessionCount").textContent=`Exercício ${session.index+1} de ${w.exercises.length}`;
+    $("sessionProgress").style.width=((session.index+1)/w.exercises.length*100)+"%";
 
     $("exerciseSession").innerHTML=`
-
         <div class="session-exercise">
-
             <small>${esc(e.muscle)}</small>
-
             <h3>${esc(e.name)}</h3>
-
-            <p class="exercise-meta">
-                ${esc(e.equipment)} • ${e.sets} séries •
-                ${esc(e.reps)} repetições
-            </p>
+            <p class="exercise-meta">${esc(e.equipment)} • ${e.sets} séries • ${esc(e.reps)} repetições</p>
 
             <div class="set-row">
                 <label>Série</label>
@@ -780,55 +834,22 @@ function renderSession(){
             </div>
 
             ${logs.map((s,i)=>`
-
                 <div class="set-row ${s.done?"done":""}">
-
                     <label>${i+1}</label>
-
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        placeholder="0"
-                        value="${esc(s.weight)}"
-                        data-weight="${i}"
-                    >
-
-                    <input
-                        type="number"
-                        min="0"
-                        placeholder="—"
-                        value="${esc(s.reps)}"
-                        data-reps="${i}"
-                    >
-
-                    <input
-                        type="checkbox"
-                        ${s.done?"checked":""}
-                        data-done="${i}"
-                    >
-
+                    <input type="number" min="0" step="0.5" placeholder="0" value="${esc(s.weight)}" data-weight="${i}">
+                    <input type="number" min="0" placeholder="—" value="${esc(s.reps)}" data-reps="${i}">
+                    <input type="checkbox" ${s.done?"checked":""} data-done="${i}">
                 </div>
-
             `).join("")}
 
-            <button
-                class="soft"
-                style="width:100%;margin-top:10px"
-                id="finishSession"
-            >
-                ✓ Finalizar treino
-            </button>
-
+            <button class="soft" style="width:100%;margin-top:10px" id="finishSession">✓ Finalizar treino</button>
         </div>
     `;
 
     $("prevExercise").disabled=session.index===0;
 
     $("nextExercise").textContent=
-        session.index===w.exercises.length-1?
-        "Concluir →":
-        "Próximo →";
+        session.index===w.exercises.length-1?"Concluir →":"Próximo →";
 
     $("exerciseSession").querySelectorAll("[data-weight]").forEach(el=>
         el.oninput=()=>logs[+el.dataset.weight].weight=el.value
@@ -839,166 +860,92 @@ function renderSession(){
     );
 
     $("exerciseSession").querySelectorAll("[data-done]").forEach(el=>
-
         el.onchange=()=>{
-
             let i=+el.dataset.done;
-
             logs[i].done=el.checked;
-
-            el.closest(".set-row").classList.toggle(
-                "done",
-                el.checked
-            );
-
-            if(el.checked&&state.prefs.autoRest)
-                startTimer(state.prefs.rest);
-
+            el.closest(".set-row").classList.toggle("done",el.checked);
+            if(el.checked&&state.prefs.autoRest)startTimer(state.prefs.rest);
         }
-
     );
 
     $("finishSession").onclick=finishSession;
 }
 
 $("prevExercise").onclick=()=>{
-
     if(session.index>0){
-
         session.index--;
-
         renderSession();
-
     }
-
 };
 
 $("nextExercise").onclick=()=>{
-
-    let w=state.workouts.find(x=>
-        x.id===session.workoutId
-    );
+    let w=state.workouts.find(x=>x.id===session.workoutId);
 
     if(session.index<w.exercises.length-1){
-
         session.index++;
-
         renderSession();
-
     }else{
-
         finishSession();
-
     }
-
 };
 
 function finishSession(){
-
     if(!session)return;
 
-    let w=state.workouts.find(x=>
-        x.id===session.workoutId
-    );
+    let w=state.workouts.find(x=>x.id===session.workoutId);
 
     let sets=w.exercises.flatMap(e=>
-        session.logs[e.id].map(s=>({
-            ...s,
-            name:e.name,
-            exerciseId:e.id
-        }))
+        session.logs[e.id].map(s=>({...s,name:e.name,exerciseId:e.id}))
     );
 
     let done=sets.filter(s=>s.done).length;
 
     state.history.push({
-
         id:uid(),
-
         date:new Date().toISOString(),
-
         title:w.title,
-
         day:w.day,
-
         duration:Date.now()-session.start,
-
         exerciseCount:w.exercises.length,
-
         sets,
-
-        percent:Math.round(
-            done/Math.max(1,sets.length)*100
-        )
-
+        percent:Math.round(done/Math.max(1,sets.length)*100)
     });
 
     session=null;
 
     save().then(()=>{
-
         page("history");
-
         toast("Treino salvo no histórico ♡");
-
     });
-
 }
 
 $("exitSession").onclick=()=>{
-
-    if(confirm(
-        "Sair do treino? O registro desta sessão não será adicionado ao histórico."
-    )){
-
+    if(confirm("Sair do treino? O registro desta sessão não será adicionado ao histórico.")){
         session=null;
-
         page("workouts");
-
     }
-
 };
+
 /* FILTROS */
 
 ["search","fDay","fMuscle","fWorkout","fEquip","fStatus"].forEach(id=>
-
-    $(id).addEventListener(
-        id==="search"?"input":"change",
-        renderWorkouts
-    )
-
+    $(id).addEventListener(id==="search"?"input":"change",renderWorkouts)
 );
 
 $("clearFilters").onclick=()=>{
-
-    [
-        "search",
-        "fDay",
-        "fMuscle",
-        "fWorkout",
-        "fEquip",
-        "fStatus"
-    ].forEach(id=>$(id).value="");
-
+    ["search","fDay","fMuscle","fWorkout","fEquip","fStatus"].forEach(id=>$(id).value="");
     renderWorkouts();
-
 };
-
 
 /* ADICIONAR EXERCÍCIO */
 
 $("addExercise").onclick=()=>{
-
     if(activeProfile!=="admin"){
-
         toast("Somente a administradora pode alterar a ficha.");
-
         return;
-
     }
 
     let name=prompt("Nome do exercício:");
-
     if(!name)return;
 
     let day=prompt(
@@ -1006,445 +953,240 @@ $("addExercise").onclick=()=>{
         "Segunda-feira"
     );
 
-    let w=state.workouts.find(x=>
-        x.day.toLowerCase()===day?.toLowerCase()
-    );
+    let w=state.workouts.find(x=>x.day.toLowerCase()===day?.toLowerCase());
 
     if(!w){
-
         toast("Dia não encontrado");
-
         return;
-
     }
 
     let muscle=prompt("Grupo muscular:","Musculação")||"Musculação";
-
     let equipment=prompt("Equipamento:","Peso livre")||"Peso livre";
-
-    let sets=Math.max(
-        1,
-        +prompt("Número de séries:","3")||3
-    );
-
+    let sets=Math.max(1,+prompt("Número de séries:","3")||3);
     let reps=prompt("Repetições:","12 a 15")||"12 a 15";
 
-    w.exercises.push({
-
-        id:uid(),
-
-        name,
-
-        muscle,
-
-        equipment,
-
-        sets,
-
-        reps,
-
-        favorite:false,
-
-        custom:true
-
-    });
+    w.exercises.push({id:uid(),name,muscle,equipment,sets,reps,favorite:false,custom:true});
 
     save().then(renderWorkouts);
-
     toast("Exercício adicionado");
-
 };
-
 
 /* GRÁFICO */
 
 $("progressExercise").onchange=drawChart;
 
-
 /* EXPORTAR BACKUP */
 
 $("exportData").onclick=()=>{
-
-    let blob=new Blob(
-        [JSON.stringify(state,null,2)],
-        {type:"application/json"}
-    );
-
+    let blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
     let a=document.createElement("a");
-
     a.href=URL.createObjectURL(blob);
-
     a.download="meu-treino-"+activeProfile+"-backup.json";
-
     a.click();
-
     URL.revokeObjectURL(a.href);
-
 };
-
 
 /* IMPORTAR BACKUP */
 
 $("importData").onchange=async ev=>{
-
     let f=ev.target.files[0];
-
     if(!f)return;
 
     try{
-
         let data=JSON.parse(await f.text());
 
-        if(!data.workouts||!data.history)
-            throw Error();
+        if(!data.workouts||!data.history)throw Error();
 
-        if(confirm(
-            "Importar backup e substituir a ficha e os dados atuais?"
-        )){
-
+        if(confirm("Importar backup e substituir a ficha e os dados atuais?")){
             state=data;
-
+            ensureState();
             await save();
-
             render();
-
             toast("Backup restaurado");
-
         }
-
     }catch(e){
-
         alert("Arquivo JSON inválido.");
-
     }
 
     ev.target.value="";
-
 };
-
 
 /* RESTAURAR FICHA ORIGINAL */
 
 $("resetData").onclick=()=>{
-
     if(activeProfile!=="admin"){
-
         toast("Somente a administradora pode restaurar a ficha.");
-
         return;
-
     }
 
-    if(confirm(
-        "Restaurar a ficha original? Seu histórico será preservado."
-    )){
-
-        let hist=state.history;
+    if(confirm("Restaurar a ficha original? Seu histórico e o registro de água serão preservados.")){
+        let hist=state.history,
+            water=state.water,
+            goal=state.prefs.waterGoal;
 
         state=initial();
-
         state.history=hist;
+        state.water=water;
+        state.prefs.waterGoal=goal||2000;
 
         save().then(render);
-
         toast("Ficha original restaurada");
-
     }
-
 };
-
 
 /* CRONÔMETRO */
 
 function showTimer(){
-
     $("timerModal").classList.remove("hidden");
-
     updateTimer();
-
 }
 
 function updateTimer(){
-
     $("timerDisplay").textContent=
         `${String(Math.floor(timer.left/60)).padStart(2,"0")}:${String(timer.left%60).padStart(2,"0")}`;
-
-    $("timerStart").textContent=
-        timer.running?"Pausar":"Iniciar";
-
+    $("timerStart").textContent=timer.running?"Pausar":"Iniciar";
 }
 
 function startTimer(sec=timer.left){
-
     timer.left=Math.max(0,sec);
-
     timer.running=true;
-
     timer.end=Date.now()+timer.left*1000;
 
-    if(timerInterval)
-        clearInterval(timerInterval);
+    if(timerInterval)clearInterval(timerInterval);
 
     timerInterval=setInterval(()=>{
-
-        timer.left=Math.max(
-            0,
-            Math.ceil((timer.end-Date.now())/1000)
-        );
-
+        timer.left=Math.max(0,Math.ceil((timer.end-Date.now())/1000));
         updateTimer();
 
         if(timer.left<=0){
-
             clearInterval(timerInterval);
-
             timer.running=false;
-
             timerInterval=null;
-
             timerDone();
-
         }
-
     },250);
 
     updateTimer();
-
 }
 
 function timerDone(){
-
     timer.running=false;
-
     updateTimer();
-
     toast("Descanso concluído! ♡");
-
-    if("vibrate"in navigator)
-        navigator.vibrate([200,100,200]);
-
+    if("vibrate"in navigator)navigator.vibrate([200,100,200]);
 }
 
 function stopTimer(){
-
-    if(timerInterval)
-        clearInterval(timerInterval);
-
+    if(timerInterval)clearInterval(timerInterval);
     timerInterval=null;
-
     timer.running=false;
-
 }
 
 $("quickTimer").onclick=
 $("sessionTimer").onclick=showTimer;
 
-$("closeTimer").onclick=()=>
-    $("timerModal").classList.add("hidden");
+$("closeTimer").onclick=()=>$("timerModal").classList.add("hidden");
 
 $("timerStart").onclick=()=>{
-
-    timer.running?
-        (stopTimer(),updateTimer()):
-        startTimer();
-
+    timer.running?(stopTimer(),updateTimer()):startTimer();
 };
 
 $("timerReset").onclick=()=>{
-
     stopTimer();
-
     timer.left=timer.seconds;
-
     updateTimer();
-
 };
 
 $("timerPlus").onclick=()=>{
-
     timer.left+=15;
-
     timer.seconds+=15;
-
-    if(timer.running)
-        timer.end+=15000;
-
+    if(timer.running)timer.end+=15000;
     updateTimer();
-
 };
 
 $("timerMinus").onclick=()=>{
-
     timer.left=Math.max(0,timer.left-15);
-
     timer.seconds=Math.max(15,timer.seconds-15);
-
-    if(timer.running)
-        timer.end-=15000;
-
+    if(timer.running)timer.end-=15000;
     updateTimer();
-
 };
 
 document.querySelectorAll("[data-time]").forEach(b=>
-
     b.onclick=()=>{
-
         stopTimer();
-
         timer.seconds=timer.left=+b.dataset.time;
-
         state.prefs.rest=timer.seconds;
-
         save();
-
         updateTimer();
-
     }
-
 );
 
 $("autoRest").checked=state.prefs.autoRest;
 
 $("autoRest").onchange=()=>{
-
     state.prefs.autoRest=$("autoRest").checked;
-
     save();
-
 };
 
-
-/* ESTILIZAÇÃO DO BOTÃO DE EXCLUSÃO */
+/* ESTILIZAÇÃO DO HISTÓRICO */
 
 (function addHistoryDeleteStyles(){
-
-    if(document.getElementById("historyDeleteStyles"))
-        return;
+    if(document.getElementById("historyDeleteStyles"))return;
 
     const style=document.createElement("style");
-
     style.id="historyDeleteStyles";
-
     style.textContent=`
-
-        .history-head{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:12px;
-        }
-
-        .delete-history{
-            flex:0 0 38px;
-            width:38px;
-            height:38px;
-            border:0;
-            border-radius:10px;
-            background:#fff0f5;
-            color:#d878a5;
-            font-size:17px;
-            cursor:pointer;
-            transition:transform .2s,background .2s;
-        }
-
-        .delete-history:hover{
-            background:#f8dce8;
-            transform:scale(1.05);
-        }
-
-        .history-info{
-            display:flex;
-            flex-wrap:wrap;
-            gap:10px;
-            margin:10px 0;
-            font-size:.85em;
-        }
-
-        .history-progress{
-            height:6px;
-            overflow:hidden;
-            border-radius:99px;
-            background:#f4e5ec;
-            margin:8px 0;
-        }
-
-        .history-progress>div{
-            height:100%;
-            border-radius:99px;
-            background:#d878a5;
-        }
-
-        .history-empty{
-            text-align:center;
-            padding:28px 16px;
-            color:inherit;
-        }
-
+        .history-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+        .delete-history{flex:0 0 38px;width:38px;height:38px;border:0;border-radius:10px;background:#fff0f5;color:#d878a5;font-size:17px;cursor:pointer;transition:transform .2s,background .2s}
+        .delete-history:hover{transform:scale(1.05)}
+        .history-info{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0;font-size:.85em}
+        .history-progress{height:6px;overflow:hidden;border-radius:99px;background:#f4e5ec;margin:8px 0}
+        .history-progress>div{height:100%;border-radius:99px;background:#d878a5}
+        .history-empty{text-align:center;padding:28px 16px;color:inherit}
     `;
-
     document.head.appendChild(style);
-
 })();
-
 
 /* FUNÇÃO DE SEGURANÇA PARA TEXTOS */
 
 function esc(s){
-
     return String(s??"").replace(/[&<>"']/g,c=>({
-
         "&":"&amp;",
         "<":"&lt;",
         ">":"&gt;",
         '"':"&quot;",
         "'":"&#39;"
-
     }[c]));
-
 }
-
 
 /* INICIALIZAÇÃO DO APLICATIVO */
 
 (async()=>{
+    ensureWaterUI();
 
     try{
-
         await openDB();
 
         try{
-
-            activeProfile=
-                localStorage.getItem("meuTreinoPerfilAtivo")||"admin";
-
+            activeProfile=localStorage.getItem("meuTreinoPerfilAtivo")||"admin";
         }catch(e){
-
             activeProfile="admin";
-
         }
 
         await load();
-
     }catch(e){
-
         toast("Armazenamento local indisponível");
-
     }
+
+    ensureState();
 
     timer.seconds=timer.left=state.prefs.rest||60;
 
     updateProfileUI();
-
     render();
-
     openProfilePicker();
 
     if("serviceWorker"in navigator&&location.protocol!=="file:"){
-
-        navigator.serviceWorker.register("service-worker.js")
-            .catch(()=>{});
-
+        navigator.serviceWorker.register("service-worker.js").catch(()=>{});
     }
-
 })();
