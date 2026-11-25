@@ -1,5 +1,5 @@
 /* Troque o número da versão sempre que atualizar os arquivos do app */
-const CACHE="meu-treino-v5";
+const CACHE="meu-treino-v6";
 const ASSETS=["./","index.html","style.css","script.js","manifest.json","icon-192.png","icon-512.png"];
 
 self.addEventListener("install",e=>{
@@ -27,4 +27,9 @@ self.addEventListener("fetch",e=>{
             return res;
         }).catch(()=>caches.match(req).then(r=>r||caches.match("index.html")))
     );
+});
+
+self.addEventListener("notificationclick",e=>{
+    e.notification.close();
+    e.waitUntil(clients.matchAll({type:"window",includeUncontrolled:true}).then(l=>l.length?l[0].focus():clients.openWindow("./")));
 });
