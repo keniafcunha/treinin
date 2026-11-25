@@ -3,18 +3,26 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#d878a5"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Meu Treino">
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=7">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=9">
 <title>Meu Treino • Fitness</title>
 </head>
 <body>
 <header class="top"><div><small>SEU ESPAÇO FITNESS</small><h1>Oi, linda! <span>♡</span></h1><p id="todayLabel">Vamos cuidar de você hoje.</p></div></header>
+<div class="viewbar" id="viewBar"><div class="seg"><button type="button" data-view="self" class="on">Meus dados</button><button type="button" data-view="other" id="viewOtherBtn">Dados da Naty</button></div><span id="syncBadge" class="sync-badge">☁ sincronização desligada</span><p id="viewNote" class="view-note" hidden></p></div>
 <main id="app">
 <section id="home" class="page active">
 <button class="profile-switch-card" id="profileSwitchHome"><span class="profile-mini">♡</span><span>Treinando como <b id="activeProfileLabel">Kenia</b></span><span class="switch-link">Trocar</span></button><div class="hero"><div class="eyebrow">TREINO DO DIA</div><h2 id="todayWorkout">Carregando...</h2><p id="todayMeta"></p><select id="workoutPicker" class="picker" aria-label="Escolher o treino"></select><button class="primary" id="startToday">♡ Iniciar treino</button></div>
 <div class="section-head"><h3>Sua semana</h3><span id="weekCount">0/6 concluídos</span></div><div class="week-filter"><button type="button" class="soft" id="weekPrev" aria-label="Semana anterior">‹</button><select id="weekSelect" aria-label="Escolher semana"></select><button type="button" class="soft" id="weekNext" aria-label="Próxima semana">›</button></div><div class="week-strip" id="weekStrip"></div>
 <div class="stats one"><article><strong id="totalSessions">0</strong><span>Treinos feitos</span></article></div>
 <div class="quote">“Pequenos passos também te levam longe.” <span>✿</span></div>
-<details class="opts"><summary>⚙ Opções e backup</summary><div class="settings"><button class="setting" id="exportData">⇩ Exportar backup JSON</button><label class="setting file-setting">⇧ Importar backup JSON<input type="file" id="importData" accept=".json,application/json"></label><button class="setting" id="resetData">↻ Restaurar ficha original</button><p class="muted">Restaurar a ficha não apaga seu histórico nem sua água.</p></div></details>
+<details class="opts"><summary>⚙ Opções e backup</summary><div class="settings">
+<div class="sync-box"><b>☁ Sincronização entre aparelhos</b>
+<p class="muted">Use os mesmos 3 dados em todos os aparelhos (celular e computador) para ver tudo em tempo real.</p>
+<input id="cloudProject" placeholder="ID do projeto Firebase" autocapitalize="off" autocomplete="off">
+<input id="cloudKey" placeholder="Chave da API (apiKey)" autocapitalize="off" autocomplete="off">
+<input id="cloudSecret" placeholder="Código secreto do grupo (8+ letras/números)" autocapitalize="off" autocomplete="off">
+<div class="water-actions"><button type="button" class="soft" id="cloudSave">Salvar e sincronizar</button><button type="button" class="soft" id="cloudOff">Desligar</button></div>
+<p class="muted" id="cloudStatus"></p></div><button class="setting" id="exportData">⇩ Exportar backup JSON</button><label class="setting file-setting">⇧ Importar backup JSON<input type="file" id="importData" accept=".json,application/json"></label><button class="setting" id="resetData">↻ Restaurar ficha original</button><p class="muted">Restaurar a ficha não apaga seu histórico nem sua água.</p></div></details>
 </section>
 <section id="workouts" class="page">
 <div class="section-head"><h2>Minha ficha</h2><button class="soft" id="addExercise">＋ Exercício</button></div>
@@ -59,7 +67,7 @@
 <div class="cal-head"><button type="button" class="soft" id="weightPrev" aria-label="Mês anterior">‹</button><b id="weightMonth"></b><button type="button" class="soft" id="weightNext" aria-label="Próximo mês">›</button></div>
 <div class="cal-grid" id="weightCal"></div>
 </div>
-<div class="water-card">
+<div class="water-card weight-write">
 <small>PESO DO DIA</small>
 <h3 id="weightDayLabel" class="weight-day"></h3>
 <div class="water-custom"><input type="text" inputmode="decimal" id="weightInput" placeholder="Ex.: 62,5 kg"><button type="button" class="primary" id="weightSave">Salvar</button></div>
@@ -102,5 +110,5 @@
   </div>
 </section>
 <div id="toast" role="status"></div>
-<script src="script.js?v=7"></script>
+<script src="script.js?v=9"></script>
 </body></html>
