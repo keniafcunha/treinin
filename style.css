@@ -1,6 +1,6 @@
 *{box-sizing:border-box}
-/* ===== TEMA PADRÃO (Naty): rosa + verde água ===== */
-:root{--pink:#e987b2;--accent:#6fd3c1;--pale:#fff5f9;--pale2:#e9faf6;--ink:#332a30;--muted:#887780;--line:#f0dce6;--white:#fff;--label:#b56b91;--deep:#c66594;--deeper:#b45f8b;--soft:#fbe3ee;--softer:#fff0f6;--track:#f3dce7;--bar:#efb1ce;--hero1:#f4a8c8;--hero2:#62cdb9;--shadow:0 8px 28px #d99ab51c}
+/* ===== TEMA PADRÃO (Naty): rosa + pêssego/laranja suave ===== */
+:root{--pink:#e987b2;--accent:#ffa987;--pale:#fff5f9;--pale2:#fff1e8;--ink:#332a30;--muted:#887780;--line:#f0dce6;--white:#fff;--label:#b56b91;--deep:#c66594;--deeper:#b45f8b;--soft:#fbe3ee;--softer:#fff0f6;--track:#f3dce7;--bar:#efb1ce;--hero1:#f4a8c8;--hero2:#ffb48f;--shadow:0 8px 28px #d99ab51c}
 /* ===== TEMA Kenia: lilás + azul bebê ===== */
 body[data-theme="admin"]{--pink:#a98be0;--accent:#8ecbf0;--pale:#f6f1ff;--pale2:#eaf5ff;--line:#e2d9f3;--label:#7f69b3;--deep:#7a5cc0;--deeper:#6a4fb0;--soft:#ece4fb;--softer:#f3eefc;--track:#e3e9f8;--bar:#b9a6ea;--hero1:#b79ce8;--hero2:#8ecbf0;--shadow:0 8px 28px #9a86d21c}
 body{margin:0;background:linear-gradient(160deg,var(--pale),var(--pale2)) fixed;min-height:100vh;color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:calc(82px + env(safe-area-inset-bottom));-webkit-tap-highlight-color:transparent}
@@ -30,7 +30,7 @@ input,select{width:100%;background:#fff;border:1px solid var(--line);border-radi
 .start-small{background:var(--soft);color:var(--deeper);padding:8px 10px;border-radius:10px;font-size:12px;font-weight:700}
 /* ===== MENU INFERIOR (6 itens) ===== */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:#ffffffed;backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 2px calc(8px + env(safe-area-inset-bottom))}
-.nav{background:transparent;color:#a99aa2;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;flex:1;min-width:0;padding:0 2px}.nav span{font-size:22px;line-height:24px}.nav.active{color:var(--deep);font-weight:800}
+.nav{background:transparent;color:#a99aa2;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;flex:1;min-width:0;padding:0 2px}.nav span{font-size:22px;line-height:24px;height:24px;display:flex;align-items:center;justify-content:center}.nav svg{width:22px;height:22px;display:block}.nav.active{color:var(--deep);font-weight:800}
 .profile-card{text-align:center;background:white;border-radius:20px;padding:22px;margin:15px 0}.avatar{margin:auto;width:60px;height:60px;background:var(--soft);border-radius:50%;display:grid;place-items:center;color:var(--deep);font-size:30px}
 .settings{background:white;border-radius:18px;padding:8px 15px}.setting{display:block;width:100%;text-align:left;background:white;padding:16px 0;border-bottom:1px solid var(--line);color:var(--ink);font-weight:650}.file-setting{position:relative;overflow:hidden}.file-setting input{position:absolute;inset:0;opacity:0}
 .field-label{display:block;margin:18px 0 8px;font-weight:700}.chart-card{background:white;border-radius:18px;padding:12px;margin:12px 0;overflow:hidden}.chart-card canvas{width:100%;display:block}
@@ -71,7 +71,7 @@ input,select{width:100%;background:#fff;border:1px solid var(--line);border-radi
 .picker-card{width:min(100%,400px);background:#fff8fb;border-radius:26px;padding:24px 18px;box-shadow:0 18px 50px #2e172533}.picker-card h2{margin:8px 0}.picker-card>small{display:block}
 .profile-choice{display:flex;align-items:center;gap:12px;width:100%;background:#fff;border:1px solid #eadff0;border-radius:17px;padding:13px;margin-top:10px;text-align:left;color:var(--ink)}
 .profile-choice>span:nth-child(2){flex:1}.profile-choice b{display:block;font-size:15px}.profile-choice small{display:block;letter-spacing:0;font-size:11px;font-weight:500;color:var(--muted);margin-top:2px}
-/* avatares fixos no seletor: Kenia lilás/azul, Naty rosa/verde água */
+/* avatares fixos no seletor: Kenia lilás/azul, Naty rosa/pêssego */
 .profile-choice[data-profile="admin"] .choice-avatar{background:linear-gradient(135deg,#ece4fb,#dff1fc);color:#7a5cc0}
-.profile-choice[data-profile="friend"] .choice-avatar{background:linear-gradient(135deg,#fde8f1,#dcf5ef);color:#c66594}
+.profile-choice[data-profile="friend"] .choice-avatar{background:linear-gradient(135deg,#fde8f1,#ffe8d9);color:#c66594}
 .choice-arrow{font-size:26px;color:#a99aa2}
