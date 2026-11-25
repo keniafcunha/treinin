@@ -16,11 +16,8 @@ const seed=[
 ["Domingo","Descanso / Recuperação","Recuperação",[]]
 ];
 
-/* =========================================
-   TEMAS POR PERFIL
-   ========================================= */
 const THEMES={
-    admin:{ /* Kenia: roxo/lilás pastel + azul bebê pastel (sem rosa) */
+    admin:{
         primary:"#a98ee6",
         secondary:"#89c8f5",
         dark:"#6b52ae",
@@ -30,12 +27,12 @@ const THEMES={
         track:"#e5effb",
         ink:"#2a2638",
         muted:"#746e88",
-        shadow:"0 8px 28px rgba(139, 120, 210, 0.12)",
-        heroGrad:"linear-gradient(135deg, #b79ff0 0%, #8bc9f6 100%)",
-        bg:"linear-gradient(160deg, #f4efff 0%, #eaf5ff 100%)",
+        shadow:"0 8px 28px rgba(139,120,210,.12)",
+        heroGrad:"linear-gradient(135deg,#b79ff0 0%,#8bc9f6 100%)",
+        bg:"linear-gradient(160deg,#f4efff 0%,#eaf5ff 100%)",
         meta:"#b79ff0"
     },
-    friend:{ /* Naty: rosa pastel + laranja pastel */
+    friend:{
         primary:"#f08ab5",
         secondary:"#f7a976",
         dark:"#c85874",
@@ -45,9 +42,9 @@ const THEMES={
         track:"#fce9e2",
         ink:"#36282a",
         muted:"#8a7478",
-        shadow:"0 8px 28px rgba(235, 138, 155, 0.13)",
-        heroGrad:"linear-gradient(135deg, #f59ec2 0%, #f8b07c 100%)",
-        bg:"linear-gradient(160deg, #fff2f7 0%, #fff4ea 100%)",
+        shadow:"0 8px 28px rgba(235,138,155,.13)",
+        heroGrad:"linear-gradient(135deg,#f59ec2 0%,#f8b07c 100%)",
+        bg:"linear-gradient(160deg,#fff2f7 0%,#fff4ea 100%)",
         meta:"#f59ec2"
     }
 };
@@ -183,9 +180,6 @@ const todayIndex=()=>{
 
 const profileNames={admin:"Kenia",friend:"Naty"};
 
-/* =========================================
-   APLICAR TEMA DO PERFIL
-   ========================================= */
 function applyTheme(profile){
     const t=THEMES[profile]||THEMES.admin,
         root=document.documentElement;
@@ -204,19 +198,12 @@ function applyTheme(profile){
     root.style.setProperty("--bg-grad",t.bg);
 
     let meta=document.querySelector('meta[name="theme-color"]');
-    if(!meta){
-        meta=document.createElement("meta");
-        meta.name="theme-color";
-        document.head.appendChild(meta);
-    }
-    meta.content=t.meta;
-
+    if(meta)meta.content=t.meta;
     document.body.dataset.theme=profile;
 }
 
 function updateProfileUI(){
     const name=profileNames[activeProfile]||"Kenia";
-
     applyTheme(activeProfile);
 
     if($("activeProfileLabel"))$("activeProfileLabel").textContent=name;
@@ -242,11 +229,9 @@ async function selectProfile(profile){
     }
 
     activeProfile=profile==="friend"?"friend":"admin";
-
     try{localStorage.setItem("meuTreinoPerfilAtivo",activeProfile);}catch(e){}
 
     await load();
-
     timer.seconds=timer.left=state.prefs.rest||60;
     $("autoRest").checked=!!state.prefs.autoRest;
 
@@ -267,7 +252,6 @@ function renderHome(){
         w=state.workouts[idx];
 
     $("todayWorkout").textContent=w.title;
-
     $("todayMeta").textContent=w.exercises.length?
         `${w.exercises.length} exercícios • ${w.muscle}`:
         "Dia de descanso e recuperação";
@@ -296,7 +280,6 @@ function renderHome(){
     ).join("");
 
     $("totalSessions").textContent=state.history.length;
-
     $("totalSets").textContent=state.history.reduce(
         (n,h)=>n+h.sets.filter(s=>s.done).length,
         0
@@ -373,7 +356,6 @@ function renderWorkouts(){
 
         let card=document.createElement("div");
         card.className="workout-card";
-
         card.innerHTML=`
             <div class="workout-head">
                 <div>
@@ -422,9 +404,6 @@ function findExercise(id){
     return allExercises().find(e=>e.id===id);
 }
 
-/* =========================================
-   HISTÓRICO DE TREINOS
-   ========================================= */
 function renderHistory(){
     let list=$("historyList");
     if(!list)return;
@@ -456,7 +435,7 @@ function renderHistory(){
                         <h3>${esc(h.title||"Treino")}</h3>
                         <p>${date.toLocaleDateString("pt-BR")} • ${esc(h.day||"")}</p>
                     </div>
-                    <button type="button" class="delete-history" data-delete-history="${esc(h.id)}" title="Excluir treino" aria-label="Excluir treino">🗑</button>
+                    <button type="button" class="delete-history" data-delete-history="${esc(h.id)}" title="Excluir treino">🗑</button>
                 </div>
                 <div class="history-info">
                     <span>♡ ${h.exerciseCount||0} exercícios</span>
@@ -493,9 +472,6 @@ function deleteHistory(id){
     });
 }
 
-/* =========================================
-   PROGRESSO E GRÁFICOS
-   ========================================= */
 function renderProgress(){
     let month=new Date().getMonth();
 
@@ -503,11 +479,9 @@ function renderProgress(){
         state.history.filter(h=>new Date(h.date).getMonth()===month).length;
 
     let sets=state.history.flatMap(h=>h.sets.filter(s=>s.done&&+s.weight>0));
-
     $("bestSet").textContent=sets.length?Math.max(...sets.map(s=>+s.weight)):"—";
 
     let ex=allExercises();
-
     $("progressExercise").innerHTML=[...new Set(ex.map(e=>e.name))].map(n=>
         `<option>${esc(n)}</option>`
     ).join("");
@@ -593,110 +567,13 @@ function drawChart(){
     $("chartNote").textContent=`${records.length} registro(s) • melhor carga: ${max} kg`;
 }
 
-/* =========================================
-   ÁGUA 💧
-   ========================================= */
+/* ÁGUA */
 const waterKey=(d=new Date())=>
     `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
 const waterTotal=key=>(state.water[key]||[]).reduce((a,b)=>a+b,0);
 
-function ensureWaterUI(){
-    if(!$("water")){
-        const ref=$("history")||document.querySelector(".page");
-        if(ref){
-            const sec=document.createElement("section");
-            sec.id="water";
-            sec.className="page";
-            sec.innerHTML=`
-                <div class="water-card">
-                    <p class="water-title">💧 Hidratação de hoje</p>
-                    <div class="water-glass">
-                        <div class="water-fill" id="waterFill"></div>
-                        <span id="waterPct">0%</span>
-                    </div>
-                    <h2 class="water-total"><span id="waterTotal">0</span> ml</h2>
-                    <small id="waterGoalText"></small>
-                    <div class="water-quick">
-                        <button type="button" data-water="200">+200 ml</button>
-                        <button type="button" data-water="300">+300 ml</button>
-                        <button type="button" data-water="500">+500 ml</button>
-                        <button type="button" data-water="1000">+1 L</button>
-                    </div>
-                    <div class="water-custom">
-                        <input type="number" id="waterCustom" min="1" max="5000" step="50" placeholder="Outra quantidade (ml)">
-                        <button type="button" id="waterAddCustom">Adicionar</button>
-                    </div>
-                    <div class="water-actions">
-                        <button type="button" id="waterUndo">↶ Desfazer último</button>
-                        <button type="button" id="waterGoalBtn">🎯 Alterar meta</button>
-                    </div>
-                </div>
-                <div class="water-card">
-                    <p class="water-title">Últimos 7 dias</p>
-                    <div class="water-week" id="waterWeek"></div>
-                </div>
-            `;
-            ref.parentElement.appendChild(sec);
-        }
-    }
-
-    if(!document.querySelector('.nav[data-page="water"]')){
-        const refNav=[...document.querySelectorAll(".nav")].pop();
-        if(refNav){
-            const b=refNav.cloneNode(true);
-            b.dataset.page="water";
-            b.classList.remove("active");
-            const kids=b.children;
-            if(kids.length>=2){
-                kids[0].textContent="💧";
-                kids[kids.length-1].textContent="Água";
-            }else{
-                b.textContent="💧 Água";
-            }
-            b.onclick=()=>page("water");
-            refNav.parentElement.appendChild(b);
-        }
-    }
-
-    if(!document.getElementById("themeAndWaterStyles")){
-        const css=document.createElement("style");
-        css.id="themeAndWaterStyles";
-        css.textContent=`
-            body{background:var(--bg-grad) fixed !important}
-            .nav.active{color:var(--accent-dark) !important}
-            .start-small,#startToday{background:linear-gradient(135deg,var(--primary),var(--secondary)) !important;color:#fff !important;border-color:transparent !important}
-            .star.on{color:var(--primary) !important}
-            .week-day.today{border-color:var(--primary) !important}
-            .week-day.done{background:var(--soft) !important}
-            .exercise-icon{background:var(--soft-alt) !important;color:var(--accent-dark) !important}
-            #sessionProgress,.bar{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
-            .history-progress{background:var(--track) !important}
-            .history-progress>div{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
-            .delete-history{background:var(--soft) !important;color:var(--accent-dark) !important}
-
-            .water-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:var(--shadow)}
-            .water-title{margin:0 0 12px;font-weight:700;color:var(--accent-dark)}
-            .water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--primary);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--soft-alt)}
-            .water-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--secondary),var(--primary));transition:height .6s ease}
-            .water-glass span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:800;color:var(--accent-dark);text-shadow:0 0 6px #fff}
-            .water-total{margin:4px 0;color:var(--accent-dark)}
-            .water-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0 10px}
-            .water-card button{border:0;border-radius:14px;padding:12px;font-weight:700;cursor:pointer;background:var(--soft);color:var(--accent-dark)}
-            .water-quick button,#waterAddCustom{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff}
-            .water-custom{display:flex;gap:8px;margin-bottom:10px}
-            .water-custom input{flex:1;min-width:0;border:1px solid var(--border);border-radius:14px;padding:12px;font-size:1em}
-            .water-actions{display:flex;gap:8px}
-            .water-actions button{flex:1}
-            .water-week{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:130px}
-            .water-day{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.72em}
-            .water-day .col{width:100%;max-width:30px;height:90px;display:flex;align-items:flex-end;background:var(--track);border-radius:8px;overflow:hidden;margin-bottom:4px}
-            .water-day .col i{display:block;width:100%;background:linear-gradient(180deg,var(--secondary),var(--primary));border-radius:8px}
-            .water-day.goal .col{outline:2px solid var(--secondary)}
-        `;
-        document.head.appendChild(css);
-    }
-
+function bindWaterEvents(){
     document.querySelectorAll("[data-water]").forEach(b=>
         b.onclick=()=>addWater(+b.dataset.water)
     );
@@ -733,7 +610,6 @@ function ensureWaterUI(){
 
 function addWater(ml){
     ml=Math.round(+ml);
-
     if(!(ml>0)||ml>5000){
         toast("Informe uma quantidade entre 1 e 5000 ml");
         return;
@@ -743,7 +619,6 @@ function addWater(ml){
     (state.water[key]=state.water[key]||[]).push(ml);
 
     save().then(renderWater);
-
     const goal=state.prefs.waterGoal||2000;
     toast(waterTotal(key)>=goal?"Meta de hoje batida! 💧🎉":`+${ml} ml 💧`);
 }
@@ -764,7 +639,6 @@ function renderWater(){
         `Faltam ${goal-total} ml para a meta de ${goal} ml`;
 
     let html="";
-
     for(let i=6;i>=0;i--){
         const d=new Date();
         d.setDate(d.getDate()-i);
@@ -780,7 +654,6 @@ function renderWater(){
             </div>
         `;
     }
-
     $("waterWeek").innerHTML=html;
 }
 
@@ -792,9 +665,6 @@ function render(){
     if($("water")&&$("water").classList.contains("active"))renderWater();
 }
 
-/* =========================================
-   SESSÃO DE TREINO
-   ========================================= */
 function startWorkout(id){
     let w=state.workouts.find(x=>x.id===id);
     if(!w||!w.exercises.length)return;
@@ -817,9 +687,8 @@ function startWorkout(id){
 }
 
 function renderSession(){
-    let w=state.workouts.find(x=>x.id===session.workoutId);
-
-    let e=w.exercises[session.index],
+    let w=state.workouts.find(x=>x.id===session.workoutId),
+        e=w.exercises[session.index],
         logs=session.logs[e.id];
 
     $("sessionDay").textContent=session.day.toUpperCase();
@@ -854,7 +723,6 @@ function renderSession(){
     `;
 
     $("prevExercise").disabled=session.index===0;
-
     $("nextExercise").textContent=
         session.index===w.exercises.length-1?"Concluir →":"Próximo →";
 
@@ -887,7 +755,6 @@ $("prevExercise").onclick=()=>{
 
 $("nextExercise").onclick=()=>{
     let w=state.workouts.find(x=>x.id===session.workoutId);
-
     if(session.index<w.exercises.length-1){
         session.index++;
         renderSession();
@@ -899,13 +766,11 @@ $("nextExercise").onclick=()=>{
 function finishSession(){
     if(!session)return;
 
-    let w=state.workouts.find(x=>x.id===session.workoutId);
-
-    let sets=w.exercises.flatMap(e=>
-        session.logs[e.id].map(s=>({...s,name:e.name,exerciseId:e.id}))
-    );
-
-    let done=sets.filter(s=>s.done).length;
+    let w=state.workouts.find(x=>x.id===session.workoutId),
+        sets=w.exercises.flatMap(e=>
+            session.logs[e.id].map(s=>({...s,name:e.name,exerciseId:e.id}))
+        ),
+        done=sets.filter(s=>s.done).length;
 
     state.history.push({
         id:uid(),
@@ -919,7 +784,6 @@ function finishSession(){
     });
 
     session=null;
-
     save().then(()=>{
         page("history");
         toast("Treino salvo no histórico ♡");
@@ -933,7 +797,6 @@ $("exitSession").onclick=()=>{
     }
 };
 
-/* FILTROS */
 ["search","fDay","fMuscle","fWorkout","fEquip","fStatus"].forEach(id=>
     $(id).addEventListener(id==="search"?"input":"change",renderWorkouts)
 );
@@ -943,7 +806,6 @@ $("clearFilters").onclick=()=>{
     renderWorkouts();
 };
 
-/* ADICIONAR EXERCÍCIO */
 $("addExercise").onclick=()=>{
     if(activeProfile!=="admin"){
         toast("Somente a administradora pode alterar a ficha.");
@@ -959,7 +821,6 @@ $("addExercise").onclick=()=>{
     );
 
     let w=state.workouts.find(x=>x.day.toLowerCase()===day?.toLowerCase());
-
     if(!w){
         toast("Dia não encontrado");
         return;
@@ -971,15 +832,12 @@ $("addExercise").onclick=()=>{
     let reps=prompt("Repetições:","12 a 15")||"12 a 15";
 
     w.exercises.push({id:uid(),name,muscle,equipment,sets,reps,favorite:false,custom:true});
-
     save().then(renderWorkouts);
     toast("Exercício adicionado");
 };
 
-/* GRÁFICO */
 $("progressExercise").onchange=drawChart;
 
-/* EXPORTAR BACKUP */
 $("exportData").onclick=()=>{
     let blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
     let a=document.createElement("a");
@@ -989,14 +847,12 @@ $("exportData").onclick=()=>{
     URL.revokeObjectURL(a.href);
 };
 
-/* IMPORTAR BACKUP */
 $("importData").onchange=async ev=>{
     let f=ev.target.files[0];
     if(!f)return;
 
     try{
         let data=JSON.parse(await f.text());
-
         if(!data.workouts||!data.history)throw Error();
 
         if(confirm("Importar backup e substituir a ficha e os dados atuais?")){
@@ -1009,11 +865,9 @@ $("importData").onchange=async ev=>{
     }catch(e){
         alert("Arquivo JSON inválido.");
     }
-
     ev.target.value="";
 };
 
-/* RESTAURAR FICHA ORIGINAL */
 $("resetData").onclick=()=>{
     if(activeProfile!=="admin"){
         toast("Somente a administradora pode restaurar a ficha.");
@@ -1035,7 +889,6 @@ $("resetData").onclick=()=>{
     }
 };
 
-/* CRONÔMETRO */
 function showTimer(){
     $("timerModal").classList.remove("hidden");
     updateTimer();
@@ -1053,7 +906,6 @@ function startTimer(sec=timer.left){
     timer.end=Date.now()+timer.left*1000;
 
     if(timerInterval)clearInterval(timerInterval);
-
     timerInterval=setInterval(()=>{
         timer.left=Math.max(0,Math.ceil((timer.end-Date.now())/1000));
         updateTimer();
@@ -1084,7 +936,6 @@ function stopTimer(){
 
 $("quickTimer").onclick=
 $("sessionTimer").onclick=showTimer;
-
 $("closeTimer").onclick=()=>$("timerModal").classList.add("hidden");
 
 $("timerStart").onclick=()=>{
@@ -1122,31 +973,11 @@ document.querySelectorAll("[data-time]").forEach(b=>
 );
 
 $("autoRest").checked=state.prefs.autoRest;
-
 $("autoRest").onchange=()=>{
     state.prefs.autoRest=$("autoRest").checked;
     save();
 };
 
-/* ESTILIZAÇÃO DO HISTÓRICO */
-(function addHistoryDeleteStyles(){
-    if(document.getElementById("historyDeleteStyles"))return;
-
-    const style=document.createElement("style");
-    style.id="historyDeleteStyles";
-    style.textContent=`
-        .history-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
-        .delete-history{flex:0 0 38px;width:38px;height:38px;border:0;border-radius:10px;background:var(--soft);color:var(--accent-dark);font-size:17px;cursor:pointer;transition:transform .2s,background .2s}
-        .delete-history:hover{transform:scale(1.05)}
-        .history-info{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0;font-size:.85em}
-        .history-progress{height:6px;overflow:hidden;border-radius:99px;background:var(--track);margin:8px 0}
-        .history-progress>div{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary),var(--secondary))}
-        .history-empty{text-align:center;padding:28px 16px;color:inherit}
-    `;
-    document.head.appendChild(style);
-})();
-
-/* FUNÇÃO DE SEGURANÇA PARA TEXTOS */
 function esc(s){
     return String(s??"").replace(/[&<>"']/g,c=>({
         "&":"&",
@@ -1157,7 +988,6 @@ function esc(s){
     }[c]));
 }
 
-/* INICIALIZAÇÃO DO APLICATIVO */
 (async()=>{
     try{
         activeProfile=localStorage.getItem("meuTreinoPerfilAtivo")||"admin";
@@ -1165,7 +995,7 @@ function esc(s){
         activeProfile="admin";
     }
 
-    ensureWaterUI();
+    bindWaterEvents();
     updateProfileUI();
     render();
 
@@ -1183,7 +1013,7 @@ function esc(s){
     openProfilePicker();
 
     if("serviceWorker"in navigator&&location.protocol!=="file:"){
-        navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+        navigator.serviceWorker.register("service-worker.js?v=6").catch(()=>{});
     }
 })();
 // FIM DO SCRIPT
