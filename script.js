@@ -30,9 +30,9 @@ const THEMES={
         bg:"linear-gradient(160deg,#f3edff 0%,#eaf5ff 100%)",
         meta:"#b79ce8"
     },
-    friend:{ /* Naty: rosa + verde água */
+    friend:{ /* Naty: rosa + pêssego */
         primary:"#d878a5",
-        secondary:"#6fd3c1",
+        secondary:"#ffa987",
         dark:"#b3447c",
         soft:"#fde8f1",
         border:"#e9c9d9",
@@ -638,7 +638,7 @@ function addWater(ml){
     save().then(renderWater);
 
     const goal=state.prefs.waterGoal||2000;
-    toast(waterTotal(key)>=goal?"Meta de hoje batida! 💧🎉":`+${ml} ml 💧`);
+    toast(waterTotal(key)>=goal?"Meta de hoje batida! 🎉":`+${ml} ml registrados`);
 }
 
 function renderWater(){
@@ -1088,6 +1088,8 @@ function esc(s){
     openProfilePicker();
 
     if("serviceWorker"in navigator&&location.protocol!=="file:"){
+        const hadController=!!navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadController)location.reload();});
         navigator.serviceWorker.register("service-worker.js").catch(()=>{});
     }
 })();
