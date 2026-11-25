@@ -24,9 +24,9 @@ function toast(s){$("toast").textContent=s;$("toast").classList.add("show");setT
 function page(name){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(name).classList.add("active");document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.page===name));if(name!=="session")render()}
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>page(b.dataset.page));
 const todayIndex=()=>{let d=new Date().getDay();return d===0?6:d-1};
-const profileNames={admin:"Kenia",friend:"Amiga"};
+const profileNames={admin:"Kenia",friend:"Naty"};
 function updateProfileUI(){
- const name=profileNames[activeProfile]||"Amiga";
+ const name=profileNames[activeProfile]||"Naty";
  if($("activeProfileLabel"))$("activeProfileLabel").textContent=name;
  if($("profileNameTitle"))$("profileNameTitle").textContent=name;
  if($("profileRoleText"))$("profileRoleText").textContent=(activeProfile==="admin"?"Administradora":"Usuária")+" • dados salvos neste aparelho";
