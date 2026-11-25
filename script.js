@@ -63,6 +63,7 @@ const initial=()=>({
     })),
     history:[],
     water:{},
+    weight:{},
     prefs:{rest:60,autoRest:false,waterGoal:2000}
 });
 
@@ -70,6 +71,7 @@ const initial=()=>({
 function ensureState(){
     if(!state.history)state.history=[];
     if(!state.water)state.water={};
+    if(!state.weight)state.weight={};
     if(!state.prefs)state.prefs={rest:60,autoRest:false};
     if(!state.prefs.waterGoal)state.prefs.waterGoal=2000;
 }
@@ -677,12 +679,171 @@ function renderWater(){
     $("waterWeek").innerHTML=html;
 }
 
+/* =========================================
+   PESO ⚖
+   ========================================= */
+
+const fmtKg=v=>(Math.round(v*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+const parseKg=t=>parseFloat(String(t).replace(",","."));
+const keyToDate=k=>{const p=k.split("-");return new Date(+p[0],+p[1]-1,+p[2]);};
+const keyBR=k=>keyToDate(k).toLocaleDateString("pt-BR");
+
+let weightSel=null,
+    weightView=(()=>{const d=new Date();return {y:d.getFullYear(),m:d.getMonth()};})();
+
+function bindWeight(){
+    if(!$("weight"))return;
+
+    weightSel=waterKey();
+
+    $("weightPrev").onclick=()=>{
+        weightView.m--;
+        if(weightView.m<0){weightView.m=11;weightView.y--;}
+        renderWeight();
+    };
+
+    $("weightNext").onclick=()=>{
+        const now=new Date();
+        if(weightView.y===now.getFullYear()&&weightView.m>=now.getMonth())return;
+        weightView.m++;
+        if(weightView.m>11){weightView.m=0;weightView.y++;}
+        renderWeight();
+    };
+
+    $("weightCal").onclick=ev=>{
+        const b=ev.target.closest("[data-day]");
+        if(!b||b.disabled)return;
+        weightSel=b.dataset.day;
+        renderWeight();
+    };
+
+    $("weightSave").onclick=()=>{
+        const v=parseKg($("weightInput").value);
+
+        if(!(v>=20&&v<=400)){
+            toast("Informe um peso válido (ex.: 62,5)");
+            return;
+        }
+
+        state.weight[weightSel]=Math.round(v*10)/10;
+        save().then(renderWeight);
+        toast(`Peso de ${keyBR(weightSel)} salvo ♡`);
+    };
+
+    $("weightRemove").onclick=()=>{
+        if(state.weight[weightSel]==null){toast("Não há peso neste dia");return;}
+        delete state.weight[weightSel];
+        save().then(renderWeight);
+        toast("Registro removido");
+    };
+
+    $("weightGoalBtn").onclick=()=>{
+        const cur=state.prefs.weightGoal;
+        const raw=prompt("Meta de peso (kg):",cur?fmtKg(cur):"");
+        if(raw===null)return;
+
+        if(raw.trim()===""){
+            delete state.prefs.weightGoal;
+        }else{
+            const v=parseKg(raw);
+            if(!(v>=20&&v<=400)){toast("Informe uma meta válida (ex.: 58,0)");return;}
+            state.prefs.weightGoal=Math.round(v*10)/10;
+        }
+
+        save().then(renderWeight);
+        toast("Meta de peso atualizada");
+    };
+}
+
+function renderWeight(){
+    if(!$("weight"))return;
+
+    const keys=Object.keys(state.weight).sort(),
+        goal=state.prefs.weightGoal;
+
+    /* ----- resumo e meta ----- */
+    if(!keys.length){
+        $("weightCurrent").textContent="—";
+        $("weightSince").textContent="Registre seu peso no calendário abaixo.";
+        $("weightGoalText").textContent=goal?`Meta: ${fmtKg(goal)} kg`:"Defina uma meta para acompanhar.";
+        $("weightBar").style.width="0%";
+    }else{
+        const first=keys[0],
+            last=keys[keys.length-1],
+            start=state.weight[first],
+            cur=state.weight[last],
+            diff=cur-start;
+
+        $("weightCurrent").textContent=fmtKg(cur);
+
+        $("weightSince").textContent=keys.length>1?
+            `${diff>0?"+":diff<0?"−":""}${fmtKg(Math.abs(diff))} kg desde ${keyBR(first)}`:
+            `Primeiro registro em ${keyBR(first)}`;
+
+        if(!goal){
+            $("weightGoalText").textContent="Defina uma meta para ver quanto falta.";
+            $("weightBar").style.width="0%";
+        }else{
+            const left=cur-goal,
+                total=Math.abs(start-goal),
+                moved=start>goal?start-cur:cur-start;
+
+            let pct=total<0.05?(Math.abs(left)<0.05?100:0):Math.round(Math.max(0,Math.min(1,moved/total))*100);
+
+            if(Math.abs(left)<0.05){
+                $("weightGoalText").textContent=`Meta de ${fmtKg(goal)} kg atingida! 🎉`;
+                pct=100;
+            }else{
+                $("weightGoalText").textContent=
+                    `Faltam ${fmtKg(Math.abs(left))} kg para a meta de ${fmtKg(goal)} kg`;
+            }
+
+            $("weightBar").style.width=pct+"%";
+        }
+    }
+
+    /* ----- calendário ----- */
+    const {y,m}=weightView,
+        now=new Date(),
+        todayKey=waterKey(now),
+        offset=(new Date(y,m,1).getDay()+6)%7,
+        days=new Date(y,m+1,0).getDate();
+
+    $("weightMonth").textContent=
+        new Date(y,m,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+
+    $("weightNext").disabled=(y===now.getFullYear()&&m>=now.getMonth());
+
+    let html=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(d=>`<em>${d}</em>`).join("");
+
+    for(let i=0;i<offset;i++)html+="<span></span>";
+
+    for(let d=1;d<=days;d++){
+        const k=waterKey(new Date(y,m,d)),
+            w=state.weight[k],
+            future=k>todayKey;
+
+        html+=`<button type="button" class="cal-day ${w!=null?"has":""} ${k===weightSel?"sel":""} ${k===todayKey?"today":""}" data-day="${k}" ${future?"disabled":""}>
+            <b>${d}</b><i>${w!=null?fmtKg(w):""}</i>
+        </button>`;
+    }
+
+    $("weightCal").innerHTML=html;
+
+    /* ----- dia selecionado ----- */
+    $("weightDayLabel").textContent=
+        weightSel===todayKey?"Hoje • "+keyBR(weightSel):keyBR(weightSel);
+
+    $("weightInput").value=state.weight[weightSel]!=null?fmtKg(state.weight[weightSel]):"";
+}
+
 function render(){
     renderHome();
     if($("workouts").classList.contains("active"))renderWorkouts();
     if($("history").classList.contains("active"))renderHistory();
     if($("progress").classList.contains("active"))renderProgress();
     if($("water")&&$("water").classList.contains("active"))renderWater();
+    if($("weight")&&$("weight").classList.contains("active"))renderWeight();
 }
 
 /* =========================================
@@ -920,15 +1081,19 @@ $("resetData").onclick=()=>{
         return;
     }
 
-    if(confirm("Restaurar a ficha original? Seu histórico e o registro de água serão preservados.")){
+    if(confirm("Restaurar a ficha original? Seu histórico, água e peso serão preservados.")){
         let hist=state.history,
             water=state.water,
+            weight=state.weight,
+            wGoal=state.prefs.weightGoal,
             goal=state.prefs.waterGoal;
 
         state=initial();
         state.history=hist;
         state.water=water;
         state.prefs.waterGoal=goal||2000;
+        state.weight=weight||{};
+        if(wGoal)state.prefs.weightGoal=wGoal;
 
         save().then(render);
         toast("Ficha original restaurada");
@@ -1064,6 +1229,7 @@ function esc(s){
 
 (async()=>{
     bindWater();
+    bindWeight();
 
     try{
         await openDB();
