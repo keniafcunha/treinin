@@ -89,3 +89,18 @@ input,select{width:100%;background:#fff;border:1px solid var(--line);border-radi
 .profile-choice[data-profile="admin"] .choice-avatar{background:linear-gradient(135deg,#ece4fb,#dff1fc);color:#7a5cc0}
 .profile-choice[data-profile="friend"] .choice-avatar{background:linear-gradient(135deg,#fde8f1,#ffe8d9);color:#c66594}
 .choice-arrow{font-size:26px;color:#a99aa2}
+
+/* ===== v6 ===== */
+.hero .picker{background:#ffffff38;color:#fff;border:1px solid #ffffff80;margin:0 0 12px;font-weight:700;font-size:14px}.hero .picker option{color:#332a30}
+.hero .primary.paid{background:#fff;color:#2f8f5b}
+.week-filter{display:flex;gap:8px;margin-bottom:10px}.week-filter select{flex:1;font-size:13px}.week-filter .soft{width:44px;padding:0;font-size:22px}
+.stats.one{grid-template-columns:1fr}
+.week-day .wk{display:block;height:14px;line-height:14px;font-size:13px;font-weight:800}
+.week-day.part{background:var(--softer);color:var(--deeper)}
+.edit-ex{background:none;color:var(--deeper);font-size:17px;padding:4px 6px}
+.opts{margin:16px 0;background:#fff;border-radius:18px;padding:4px 15px}.opts summary{padding:14px 0;font-weight:700;color:var(--deeper);cursor:pointer}.opts .settings{padding:0}
+.history-actions{margin-top:10px}.history-actions .soft{width:100%}
+.remind .switch-row{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:12px}.remind .switch-row input{width:24px;height:24px;accent-color:var(--pink)}
+.rem-grid{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;margin-bottom:12px;text-align:left}.rem-grid label{font-size:11px;color:var(--muted);font-weight:700}.rem-grid select,.rem-grid input{margin-top:4px;padding:10px 6px;font-size:13px}
+.wchart-wrap{overflow-x:auto;margin:10px 0 4px;-webkit-overflow-scrolling:touch}.wchart-wrap canvas{display:block}
+.edit-card{text-align:left;max-height:92vh;overflow:auto}.edit-card h3{margin:4px 0 8px}.fl{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-top:10px}.fl input,.fl select{margin-top:4px;color:var(--ink)}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.edit-card .textbtn{display:block;margin:6px auto 0}
