@@ -20,25 +20,35 @@ const seed=[
    TEMAS POR PERFIL
    ========================================= */
 const THEMES={
-    admin:{ /* Kenia: lilás + azul bebê */
-        primary:"#b79ce8",
-        secondary:"#8ecbf0",
-        dark:"#7a5cc0",
-        soft:"#efe8fb",
-        border:"#d9ccf0",
-        track:"#e6eefb",
-        bg:"linear-gradient(160deg,#f3edff 0%,#eaf5ff 100%)",
-        meta:"#b79ce8"
+    admin:{ /* Kenia: roxo/lilás pastel + azul bebê pastel (sem rosa) */
+        primary:"#a98ee6",
+        secondary:"#89c8f5",
+        dark:"#6b52ae",
+        soft:"#efe9fc",
+        softAlt:"#e6f3fd",
+        border:"#ddd3f5",
+        track:"#e5effb",
+        ink:"#2a2638",
+        muted:"#746e88",
+        shadow:"0 8px 28px rgba(139, 120, 210, 0.12)",
+        heroGrad:"linear-gradient(135deg, #b79ff0 0%, #8bc9f6 100%)",
+        bg:"linear-gradient(160deg, #f4efff 0%, #eaf5ff 100%)",
+        meta:"#b79ff0"
     },
-    friend:{ /* Naty: rosa + verde água */
-        primary:"#d878a5",
-        secondary:"#e6b891",
-        dark:"#b3447c",
-        soft:"#fde8f1",
-        border:"#e9c9d9",
-        track:"#f4e5ec",
-        bg:"linear-gradient(160deg,#fff0f6 0%,#e6faf6 100%)",
-        meta:"#fbede0"
+    friend:{ /* Naty: rosa pastel + laranja pastel */
+        primary:"#f08ab5",
+        secondary:"#f7a976",
+        dark:"#c85874",
+        soft:"#fdebf2",
+        softAlt:"#fff1e6",
+        border:"#f4d5df",
+        track:"#fce9e2",
+        ink:"#36282a",
+        muted:"#8a7478",
+        shadow:"0 8px 28px rgba(235, 138, 155, 0.13)",
+        heroGrad:"linear-gradient(135deg, #f59ec2 0%, #f8b07c 100%)",
+        bg:"linear-gradient(160deg, #fff2f7 0%, #fff4ea 100%)",
+        meta:"#f59ec2"
     }
 };
 
@@ -176,15 +186,20 @@ const profileNames={admin:"Kenia",friend:"Naty"};
    APLICAR TEMA DO PERFIL
    ========================================= */
 function applyTheme(profile){
-    const t=THEMES[profile]||THEMES.friend,
+    const t=THEMES[profile]||THEMES.admin,
         root=document.documentElement;
 
     root.style.setProperty("--primary",t.primary);
     root.style.setProperty("--secondary",t.secondary);
     root.style.setProperty("--accent-dark",t.dark);
     root.style.setProperty("--soft",t.soft);
+    root.style.setProperty("--soft-alt",t.softAlt);
     root.style.setProperty("--border",t.border);
     root.style.setProperty("--track",t.track);
+    root.style.setProperty("--ink",t.ink);
+    root.style.setProperty("--muted",t.muted);
+    root.style.setProperty("--shadow",t.shadow);
+    root.style.setProperty("--hero-grad",t.heroGrad);
     root.style.setProperty("--bg-grad",t.bg);
 
     let meta=document.querySelector('meta[name="theme-color"]');
@@ -199,7 +214,7 @@ function applyTheme(profile){
 }
 
 function updateProfileUI(){
-    const name=profileNames[activeProfile]||"Naty";
+    const name=profileNames[activeProfile]||"Kenia";
 
     applyTheme(activeProfile);
 
@@ -526,7 +541,7 @@ function drawChart(){
     let canvas=$("progressChart"),
         ctx=canvas.getContext("2d"),
         name=$("progressExercise").value,
-        theme=THEMES[activeProfile]||THEMES.friend;
+        theme=THEMES[activeProfile]||THEMES.admin;
 
     let records=state.history.flatMap(h=>
         h.sets.filter(s=>s.name===name&&s.done&&+s.weight>0).map(s=>({
@@ -639,21 +654,21 @@ function ensureWaterUI(){
     const css=document.createElement("style");
     css.id="themeAndWaterStyles";
     css.textContent=`
-        body{background:var(--bg-grad,#fff0f6) fixed !important}
+        body{background:var(--bg-grad) fixed !important}
         .nav.active{color:var(--accent-dark) !important}
         .start-small,#startToday{background:linear-gradient(135deg,var(--primary),var(--secondary)) !important;color:#fff !important;border-color:transparent !important}
         .star.on{color:var(--primary) !important}
         .week-day.today{border-color:var(--primary) !important}
         .week-day.done{background:var(--soft) !important}
-        .exercise-icon{background:var(--soft) !important;color:var(--accent-dark) !important}
+        .exercise-icon{background:var(--soft-alt) !important;color:var(--accent-dark) !important}
         #sessionProgress,.bar{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
         .history-progress{background:var(--track) !important}
         .history-progress>div{background:linear-gradient(90deg,var(--primary),var(--secondary)) !important}
         .delete-history{background:var(--soft) !important;color:var(--accent-dark) !important}
 
-        .water-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+        .water-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:18px;margin:14px 0;text-align:center;box-shadow:var(--shadow)}
         .water-title{margin:0 0 12px;font-weight:700;color:var(--accent-dark)}
-        .water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--primary);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--soft)}
+        .water-glass{position:relative;width:130px;height:160px;margin:0 auto 12px;border:3px solid var(--primary);border-radius:6px 6px 34px 34px;overflow:hidden;background:var(--soft-alt)}
         .water-fill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(180deg,var(--secondary),var(--primary));transition:height .6s ease}
         .water-glass span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:800;color:var(--accent-dark);text-shadow:0 0 6px #fff}
         .water-total{margin:4px 0;color:var(--accent-dark)}
@@ -1078,115 +1093,3 @@ function timerDone(){
 
 function stopTimer(){
     if(timerInterval)clearInterval(timerInterval);
-    timerInterval=null;
-    timer.running=false;
-}
-
-$("quickTimer").onclick=
-$("sessionTimer").onclick=showTimer;
-
-$("closeTimer").onclick=()=>$("timerModal").classList.add("hidden");
-
-$("timerStart").onclick=()=>{
-    timer.running?(stopTimer(),updateTimer()):startTimer();
-};
-
-$("timerReset").onclick=()=>{
-    stopTimer();
-    timer.left=timer.seconds;
-    updateTimer();
-};
-
-$("timerPlus").onclick=()=>{
-    timer.left+=15;
-    timer.seconds+=15;
-    if(timer.running)timer.end+=15000;
-    updateTimer();
-};
-
-$("timerMinus").onclick=()=>{
-    timer.left=Math.max(0,timer.left-15);
-    timer.seconds=Math.max(15,timer.seconds-15);
-    if(timer.running)timer.end-=15000;
-    updateTimer();
-};
-
-document.querySelectorAll("[data-time]").forEach(b=>
-    b.onclick=()=>{
-        stopTimer();
-        timer.seconds=timer.left=+b.dataset.time;
-        state.prefs.rest=timer.seconds;
-        save();
-        updateTimer();
-    }
-);
-
-$("autoRest").checked=state.prefs.autoRest;
-
-$("autoRest").onchange=()=>{
-    state.prefs.autoRest=$("autoRest").checked;
-    save();
-};
-
-/* ESTILIZAÇÃO DO HISTÓRICO */
-
-(function addHistoryDeleteStyles(){
-    if(document.getElementById("historyDeleteStyles"))return;
-
-    const style=document.createElement("style");
-    style.id="historyDeleteStyles";
-    style.textContent=`
-        .history-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
-        .delete-history{flex:0 0 38px;width:38px;height:38px;border:0;border-radius:10px;background:#fff0f5;color:#d878a5;font-size:17px;cursor:pointer;transition:transform .2s,background .2s}
-        .delete-history:hover{transform:scale(1.05)}
-        .history-info{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0;font-size:.85em}
-        .history-progress{height:6px;overflow:hidden;border-radius:99px;background:#f4e5ec;margin:8px 0}
-        .history-progress>div{height:100%;border-radius:99px;background:#d878a5}
-        .history-empty{text-align:center;padding:28px 16px;color:inherit}
-    `;
-    document.head.appendChild(style);
-})();
-
-/* FUNÇÃO DE SEGURANÇA PARA TEXTOS */
-
-function esc(s){
-    return String(s??"").replace(/[&<>"']/g,c=>({
-        "&":"&amp;",
-        "<":"&lt;",
-        ">":"&gt;",
-        '"':"&quot;",
-        "'":"&#39;"
-    }[c]));
-}
-
-/* INICIALIZAÇÃO DO APLICATIVO */
-
-(async()=>{
-    ensureWaterUI();
-
-    try{
-        await openDB();
-
-        try{
-            activeProfile=localStorage.getItem("meuTreinoPerfilAtivo")||"admin";
-        }catch(e){
-            activeProfile="admin";
-        }
-
-        await load();
-    }catch(e){
-        toast("Armazenamento local indisponível");
-    }
-
-    ensureState();
-
-    timer.seconds=timer.left=state.prefs.rest||60;
-
-    updateProfileUI();
-    render();
-    openProfilePicker();
-
-    if("serviceWorker"in navigator&&location.protocol!=="file:"){
-        navigator.serviceWorker.register("service-worker.js").catch(()=>{});
-    }
-})();
