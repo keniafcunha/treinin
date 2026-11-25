@@ -93,6 +93,36 @@
       <div id="historyList"></div>
     </section>
 
+    <section id="water" class="page">
+      <div class="water-card">
+        <p class="water-title">💧 Hidratação de hoje</p>
+        <div class="water-glass">
+          <div class="water-fill" id="waterFill"></div>
+          <span id="waterPct">0%</span>
+        </div>
+        <h2 class="water-total"><span id="waterTotal">0</span> ml</h2>
+        <small id="waterGoalText"></small>
+        <div class="water-quick">
+          <button type="button" data-water="200">+200 ml</button>
+          <button type="button" data-water="300">+300 ml</button>
+          <button type="button" data-water="500">+500 ml</button>
+          <button type="button" data-water="1000">+1 L</button>
+        </div>
+        <div class="water-custom">
+          <input type="number" id="waterCustom" min="1" max="5000" step="50" placeholder="Outra quantidade (ml)">
+          <button type="button" id="waterAddCustom">Adicionar</button>
+        </div>
+        <div class="water-actions">
+          <button type="button" id="waterUndo">↶ Desfazer último</button>
+          <button type="button" id="waterGoalBtn">🎯 Alterar meta</button>
+        </div>
+      </div>
+      <div class="water-card">
+        <p class="water-title">Últimos 7 dias</p>
+        <div class="water-week" id="waterWeek"></div>
+      </div>
+    </section>
+
     <section id="progress" class="page">
       <h2>Seu progresso</h2>
       <div class="stats">
@@ -190,6 +220,7 @@
     <button data-page="home" class="nav active"><span>⌂</span>Início</button>
     <button data-page="workouts" class="nav"><span>♧</span>Treinos</button>
     <button data-page="history" class="nav"><span>▤</span>Histórico</button>
+    <button data-page="water" class="nav"><span>💧</span>Água</button>
     <button data-page="progress" class="nav"><span>↗</span>Progresso</button>
     <button data-page="profile" class="nav"><span>♡</span>Perfil</button>
   </nav>
