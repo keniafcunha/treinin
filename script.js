@@ -64,6 +64,7 @@ const initial=()=>({
     history:[],
     water:{},
     weight:{},
+    measures:{},
     prefs:{rest:60,autoRest:false,waterGoal:2000}
 });
 
@@ -72,6 +73,7 @@ function ensureState(){
     if(!state.history)state.history=[];
     if(!state.water)state.water={};
     if(!state.weight)state.weight={};
+    if(!state.measures)state.measures={};
     if(!state.prefs)state.prefs={rest:60,autoRest:false};
     if(!state.prefs.waterGoal)state.prefs.waterGoal=2000;
 }
@@ -991,6 +993,7 @@ function renderWeight(){
     $("weightInput").value=state.weight[weightSel]!=null?fmtKg(state.weight[weightSel]):"";
 
     drawWeightChart();
+    renderMeasures();
 }
 
 function drawWeightChart(){
@@ -1383,6 +1386,7 @@ $("resetData").onclick=()=>{
         let hist=state.history,
             water=state.water,
             weight=state.weight,
+            meas=state.measures,
             wGoal=state.prefs.weightGoal,
             goal=state.prefs.waterGoal;
 
@@ -1391,6 +1395,7 @@ $("resetData").onclick=()=>{
         state.water=water;
         state.prefs.waterGoal=goal||2000;
         state.weight=weight||{};
+        state.measures=meas||{};
         if(wGoal)state.prefs.weightGoal=wGoal;
 
         save().then(render);
@@ -1522,12 +1527,260 @@ function esc(s){
     }[c]));
 }
 
+/* =========================================
+   MEDIDAS CORPORAIS 📏
+   ========================================= */
+
+const MFIELDS=[
+    {g:"Tronco",items:[
+        ["pescoco","Pescoço","abaixo do pomo de adão"],
+        ["ombros","Ombros","contorno na parte mais larga"],
+        ["torax","Tórax / busto","altura dos mamilos, sem apertar"],
+        ["cintura","Cintura","parte mais estreita do tronco"],
+        ["abdomen","Abdômen","na altura do umbigo"],
+        ["quadril","Quadril","parte mais larga do bumbum"]
+    ]},
+    {g:"Braços",items:[
+        ["bracoD","Braço direito","meio do braço, relaxado"],
+        ["bracoE","Braço esquerdo","meio do braço, relaxado"],
+        ["antebracoD","Antebraço direito","parte mais grossa"],
+        ["antebracoE","Antebraço esquerdo","parte mais grossa"]
+    ]},
+    {g:"Pernas",items:[
+        ["coxaD","Coxa direita","parte mais grossa, perto do quadril"],
+        ["coxaE","Coxa esquerda","parte mais grossa, perto do quadril"],
+        ["panturrilhaD","Panturrilha direita","parte mais grossa"],
+        ["panturrilhaE","Panturrilha esquerda","parte mais grossa"]
+    ]},
+    {g:"Composição (opcional)",items:[
+        ["gordura","% de gordura","se você tiver bioimpedância ou adipômetro"]
+    ]}
+];
+
+const MALL=MFIELDS.flatMap(g=>g.items),
+    mLabel=k=>(MALL.find(x=>x[0]===k)||[k,k])[1],
+    mUnit=k=>k==="gordura"?"%":"cm";
+
+let measSel=null,measToken="";
+
+function measOk(k,v){
+    return k==="gordura"?(v>=2&&v<=70):(v>=5&&v<=300);
+}
+
+function bindMeasures(){
+    if(!$("measForm"))return;
+
+    measSel=waterKey();
+    $("measDate").max=measSel;
+    $("measDate").value=measSel;
+
+    $("measForm").innerHTML=MFIELDS.map(g=>`
+        <h4>${esc(g.g)}</h4>
+        <div class="meas-grid">${g.items.map(i=>`
+            <label class="fl">${esc(i[1])} (${mUnit(i[0])})<span class="tip">${esc(i[2])}</span>
+                <input type="text" inputmode="decimal" id="m_${i[0]}" placeholder="ex.: 70,5">
+            </label>`).join("")}
+        </div>`).join("");
+
+    $("measDate").onchange=()=>{
+        if(!$("measDate").value)return;
+        measSel=$("measDate").value>waterKey()?waterKey():$("measDate").value;
+        $("measDate").value=measSel;
+        measToken="";
+        renderMeasures();
+    };
+
+    $("measSave").onclick=()=>{
+        const entry={};
+        let bad=null;
+
+        MALL.forEach(i=>{
+            const raw=$("m_"+i[0]).value.trim();
+            if(!raw)return;
+            const v=parseKg(raw);
+            if(!measOk(i[0],v))bad=bad||i[1];
+            else entry[i[0]]=Math.round(v*10)/10;
+        });
+
+        if(bad){toast(`Valor inválido em: ${bad}`);return;}
+        if(!Object.keys(entry).length){toast("Preencha pelo menos uma medida");return;}
+
+        state.measures[measSel]=entry;
+        measToken="";
+        save().then(renderMeasures);
+        toast(`Medidas de ${keyBR(measSel)} salvas ♡`);
+    };
+
+    $("measRemove").onclick=()=>{
+        if(!state.measures[measSel]){toast("Não há medidas nesta data");return;}
+        if(!confirm(`Remover as medidas de ${keyBR(measSel)}?`))return;
+        delete state.measures[measSel];
+        measToken="";
+        save().then(renderMeasures);
+        toast("Registro removido");
+    };
+
+    $("measCopy").onclick=()=>{
+        const prev=Object.keys(state.measures).sort().filter(k=>k<measSel).pop()||
+            Object.keys(state.measures).sort().filter(k=>k!==measSel).pop();
+        if(!prev){toast("Ainda não há medidas anteriores");return;}
+        MALL.forEach(i=>{
+            const v=state.measures[prev][i[0]];
+            $("m_"+i[0]).value=v!=null?fmtKg(v):"";
+        });
+        toast(`Valores de ${keyBR(prev)} copiados — ajuste e salve`);
+    };
+
+    $("measField").onchange=drawMeasChart;
+
+    $("measHistory").onclick=ev=>{
+        const b=ev.target.closest("[data-mdate]");
+        if(!b)return;
+        measSel=b.dataset.mdate;
+        $("measDate").value=measSel;
+        measToken="";
+        renderMeasures();
+        $("measForm").scrollIntoView({behavior:"smooth",block:"start"});
+    };
+}
+
+function renderMeasures(){
+    if(!$("measForm"))return;
+
+    const dates=Object.keys(state.measures).sort(),
+        todayKey=waterKey();
+
+    /* status semanal */
+    if(!dates.length){
+        $("measStatus").textContent="Nenhuma medição ainda. Faça a primeira hoje e repita a cada 7 dias.";
+    }else{
+        const last=dates[dates.length-1],
+            days=Math.round((keyToDate(todayKey)-keyToDate(last))/86400000),
+            next=keyToDate(last);
+        next.setDate(next.getDate()+7);
+
+        $("measStatus").textContent=days>=7?
+            `Última medição em ${keyBR(last)} (há ${days} dias). Já passou de 1 semana: hora de medir de novo!`:
+            `Última medição em ${keyBR(last)}. Próxima sugerida: ${next.toLocaleDateString("pt-BR")} (em ${7-days} dia(s)). ${dates.length} registro(s) no total.`;
+    }
+
+    /* formulário (só recarrega quando muda a data ou os dados) */
+    const token=activeProfile+"|"+measSel+"|"+JSON.stringify(state.measures[measSel]||null);
+    if(token!==measToken){
+        measToken=token;
+        $("measDate").value=measSel;
+        MALL.forEach(i=>{
+            const v=(state.measures[measSel]||{})[i[0]];
+            $("m_"+i[0]).value=v!=null?fmtKg(v):"";
+        });
+    }
+
+    /* seletor de medida para o gráfico */
+    const withData=MALL.filter(i=>dates.some(d=>state.measures[d][i[0]]!=null)),
+        old=$("measField").value;
+
+    $("measField").innerHTML=withData.length?
+        withData.map(i=>`<option value="${i[0]}">${esc(i[1])} (${mUnit(i[0])})</option>`).join(""):
+        `<option value="">Sem medidas ainda</option>`;
+
+    if(withData.some(i=>i[0]===old))$("measField").value=old;
+    else if(withData.some(i=>i[0]==="cintura"))$("measField").value="cintura";
+
+    drawMeasChart();
+
+    /* comparativo */
+    if(!withData.length){
+        $("measTable").innerHTML=`<p class="muted">Salve a primeira medição para ver o comparativo.</p>`;
+    }else{
+        const delta=(a,b,k)=>{
+            if(a==null||b==null)return "—";
+            const d=Math.round((a-b)*10)/10;
+            if(d===0)return "0";
+            return `<span class="${d<0?"dn":"up"}">${d<0?"▼":"▲"} ${fmtKg(Math.abs(d))}</span>`;
+        };
+
+        $("measTable").innerHTML=`<table class="meas-table">
+            <tr><th>Medida</th><th>Primeira</th><th>Anterior</th><th>Atual</th><th>vs anterior</th><th>vs primeira</th></tr>
+            ${withData.map(i=>{
+                const vals=dates.filter(d=>state.measures[d][i[0]]!=null).map(d=>state.measures[d][i[0]]),
+                    first=vals[0],cur=vals[vals.length-1],prev=vals.length>1?vals[vals.length-2]:null;
+                return `<tr><td>${esc(i[1])}</td><td>${fmtKg(first)}</td><td>${prev!=null?fmtKg(prev):"—"}</td><td><b>${fmtKg(cur)}</b></td><td>${delta(cur,prev)}</td><td>${vals.length>1?delta(cur,first):"—"}</td></tr>`;
+            }).join("")}
+        </table>`;
+    }
+
+    /* histórico semanal */
+    $("measHistory").innerHTML=dates.length?
+        [...dates].reverse().map(d=>{
+            const m=state.measures[d],
+                sum=["cintura","abdomen","quadril"].filter(k=>m[k]!=null).map(k=>`${mLabel(k)} ${fmtKg(m[k])}`).join(" • ");
+            return `<div class="meas-item"><div><b>${keyToDate(d).toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"})}</b><span>${Object.keys(m).length} medida(s)${sum?" • "+esc(sum):""}</span></div><button type="button" class="soft" data-mdate="${d}">✎ Ver / editar</button></div>`;
+        }).join(""):
+        `<p class="muted">Nenhum registro ainda.</p>`;
+}
+
+function drawMeasChart(){
+    const k=$("measField").value,wrap=$("measChartWrap"),cv=$("measChart"),ctx=cv.getContext("2d"),
+        th=THEMES[activeProfile]||THEMES.friend,H=200,ratio=devicePixelRatio||1,step=56,pad=38;
+
+    const pts=Object.keys(state.measures).sort()
+        .filter(d=>k&&state.measures[d][k]!=null)
+        .map(d=>({d,v:state.measures[d][k]}));
+
+    const W=Math.max(wrap.clientWidth||300,pad+pts.length*step+10);
+    cv.style.width=W+"px";
+    cv.width=W*ratio;
+    cv.height=H*ratio;
+    ctx.setTransform(ratio,0,0,ratio,0,0);
+    ctx.clearRect(0,0,W,H);
+
+    if(!pts.length){
+        $("measChartNote").textContent="Salve suas medidas para ver a evolução semana a semana.";
+        return;
+    }
+
+    const vs=pts.map(p=>p.v),mn=Math.min(...vs),mx=Math.max(...vs),sp=(mx-mn)||2,
+        lo=mn-sp*.3,hi=mx+sp*.3,top=22,base=H-32,
+        y=v=>base-(v-lo)/(hi-lo)*(base-top);
+
+    ctx.strokeStyle=th.border;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad,top-8);ctx.lineTo(pad,base);ctx.lineTo(W-6,base);ctx.stroke();
+
+    ctx.font="10px sans-serif";ctx.fillStyle="#887780";
+    ctx.textAlign="right";
+    ctx.fillText(fmtKg(hi),pad-4,top);
+    ctx.fillText(fmtKg(lo),pad-4,base);
+    ctx.textAlign="center";
+
+    pts.forEach((p,i)=>ctx.fillText(p.d.slice(8)+"/"+p.d.slice(5,7),pad+step*(i+.5),H-14));
+
+    ctx.strokeStyle=th.dark;ctx.lineWidth=3;ctx.lineJoin="round";
+    ctx.beginPath();
+    pts.forEach((p,i)=>{const x=pad+step*(i+.5);i?ctx.lineTo(x,y(p.v)):ctx.moveTo(x,y(p.v));});
+    ctx.stroke();
+
+    pts.forEach((p,i)=>{
+        const x=pad+step*(i+.5);
+        ctx.fillStyle=th.dark;
+        ctx.beginPath();ctx.arc(x,y(p.v),4.5,0,7);ctx.fill();
+        ctx.fillStyle="#332a30";
+        ctx.fillText(fmtKg(p.v),x,y(p.v)-9);
+    });
+
+    const diff=Math.round((vs[vs.length-1]-vs[0])*10)/10;
+    $("measChartNote").textContent=
+        `${pts.length} registro(s)`+(pts.length>1?` • ${diff>0?"+":diff<0?"−":""}${fmtKg(Math.abs(diff))} ${mUnit(k)} desde ${keyBR(pts[0].d)}`:"");
+
+    wrap.scrollLeft=wrap.scrollWidth;
+}
+
 /* INICIALIZAÇÃO DO APLICATIVO */
 
 (async()=>{
     bindWater();
     bindWeight();
     bindRem();
+    bindMeasures();
 
     $("workoutPicker").onchange=()=>{pickedWorkout=$("workoutPicker").value;renderHome();};
     $("weekSelect").onchange=()=>{weekOffset=+$("weekSelect").value;renderHome();};
