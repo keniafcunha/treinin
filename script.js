@@ -1171,7 +1171,7 @@ function renderSession(){
                 <label>Série</label>
                 <label>Carga (kg)</label>
                 <label>Reps</label>
-                <span class="set-head"><i>Feito</i><i>Não</i></span>
+                <span class="set-head"><i>✓</i><i>✕</i></span>
             </div>
 
             ${logs.map((s,i)=>`
