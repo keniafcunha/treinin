@@ -138,3 +138,13 @@ body.viewing #startToday,body.viewing #workoutPicker,body.viewing #addExercise,b
 body.viewing .history-actions,body.viewing [data-delete-history],body.viewing .water-quick,body.viewing .water-custom,body.viewing .water-actions,
 body.viewing .remind,body.viewing #weightGoalBtn,body.viewing .weight-write,body.viewing .meas-card,body.viewing .opts,body.viewing .profile-switch-card,
 body.viewing .meas-item .soft{display:none!important}
+
+/* ===== série: feito / não realizado ===== */
+.set-row{grid-template-columns:28px 1fr 1fr 76px}
+.set-btns{display:flex;gap:6px}
+.sb{width:34px;height:34px;border-radius:10px;background:#fff;border:1px solid var(--line);font-size:16px;font-weight:800;color:var(--muted);padding:0}
+.sb.ok.on{background:#2f8f5b;color:#fff;border-color:transparent}
+.sb.no.on{background:#c0556f;color:#fff;border-color:transparent}
+.set-row.skipped{background:#fdecef;border-radius:12px;padding:5px}
+.set-row.skipped input{opacity:.55}
+.exercise-icon svg{width:22px;height:22px;display:block}
