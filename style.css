@@ -155,3 +155,5 @@ body.viewing .meas-item .soft{display:none!important}
 .sb.ok.on{background:#2f8f5b;border-color:#2f8f5b}
 .sb.no.on{background:#c0556f;border-color:#c0556f}
 .set-head{display:flex;gap:8px}.set-head i{font-style:normal;width:30px;text-align:center;font-size:9px;font-weight:700;color:var(--muted)}
+
+.set-head i{font-size:15px;font-weight:800}.set-head i:first-child{color:#2f8f5b}.set-head i:last-child{color:#c0556f}
