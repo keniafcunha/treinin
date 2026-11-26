@@ -1171,7 +1171,7 @@ function renderSession(){
                 <label>Série</label>
                 <label>Carga (kg)</label>
                 <label>Reps</label>
-                <span></span>
+                <span class="set-head"><i>Feito</i><i>Não</i></span>
             </div>
 
             ${logs.map((s,i)=>`
@@ -1179,7 +1179,7 @@ function renderSession(){
                     <label>${i+1}</label>
                     <input type="number" min="0" step="0.5" placeholder="0" value="${esc(s.weight)}" data-weight="${i}">
                     <input type="number" min="0" placeholder="—" value="${esc(s.reps)}" data-reps="${i}">
-                    <div class="set-btns"><button type="button" class="sb ok ${s.done?"on":""}" data-done="${i}" aria-label="Feito" title="Feito">✓</button><button type="button" class="sb no ${s.skipped?"on":""}" data-skip="${i}" aria-label="Não realizado" title="Não realizado">✕</button></div>
+                    <div class="set-btns"><button type="button" class="sb ok ${s.done?"on":""}" data-done="${i}" aria-label="Feito" title="Feito">${s.done?"✓":""}</button><button type="button" class="sb no ${s.skipped?"on":""}" data-skip="${i}" aria-label="Não realizado" title="Não realizado">${s.skipped?"✕":""}</button></div>
                 </div>
             `).join("")}
 
@@ -1204,8 +1204,9 @@ function renderSession(){
         const i=+(el.dataset.done||el.dataset.skip),row=el.closest(".set-row"),s=logs[i];
         row.classList.toggle("done",!!s.done);
         row.classList.toggle("skipped",!!s.skipped);
-        row.querySelector(".ok").classList.toggle("on",!!s.done);
-        row.querySelector(".no").classList.toggle("on",!!s.skipped);
+        const ok=row.querySelector(".ok"),no=row.querySelector(".no");
+        ok.classList.toggle("on",!!s.done);ok.textContent=s.done?"✓":"";
+        no.classList.toggle("on",!!s.skipped);no.textContent=s.skipped?"✕":"";
         sessionStatus();
     };
 
