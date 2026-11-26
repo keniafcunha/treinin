@@ -562,21 +562,23 @@ function deleteHistory(id){
    ========================================= */
 
 function renderProgress(){
-    let month=new Date().getMonth();
+    document.querySelectorAll("#progPeriod button").forEach(b=>b.classList.toggle("on",b.dataset.p===progPeriod));
+    document.querySelectorAll("#progMetric button").forEach(b=>b.classList.toggle("on",b.dataset.m===progMetric));
 
-    $("monthlyCount").textContent=
-        state.history.filter(h=>new Date(h.date).getMonth()===month).length;
+    const win=progWindow(),W=aggregate(win.start,win.weeks);
 
-    let sets=state.history.flatMap(h=>h.sets.filter(s=>s.done&&+s.weight>0));
+    renderAlerts();
+    renderKpis(win,W);
+    renderHeat();
+    drawWeeklyChart(W);
+    drawVolumeChart(W);
+    renderMuscle(win);
+    renderPRs();
 
-    $("bestSet").textContent=sets.length?Math.max(...sets.map(s=>+s.weight)):"—";
-
-    const g={},addG=(k,n)=>{(g[k]=g[k]||new Set()).add(n);},
-        wlabel=t=>String(t||"Outros").replace(/^\s*Treino\s*\d+\s*[:\-–—]\s*/i,"").trim()||"Outros";
-
+    /* evolução por exercício: treino do dia -> exercício */
+    const g={},addG=(k,n)=>{(g[k]=g[k]||new Set()).add(n);};
     state.workouts.forEach(w=>w.exercises.forEach(e=>addG(wlabel(w.title),e.name)));
     state.history.forEach(h=>(h.sets||[]).forEach(s=>addG(wlabel(h.title),s.name)));
-
     progressGroups=g;
 
     const oldG=$("progressGroup").value;
@@ -584,24 +586,407 @@ function renderProgress(){
     if(g[oldG])$("progressGroup").value=oldG;
 
     fillProgressExercises();
+}
 
-    let weekly=Array.from({length:7},(_,i)=>
-        state.history.filter(h=>{
-            let d=new Date(h.date);
-            return Math.floor((Date.now()-d.getTime())/604800000)===i;
-        }).length
-    ).reverse();
+/* ----- utilidades ----- */
+let progPeriod="4",progMetric="carga",progressGroups={};
 
-    $("weeklyBars").innerHTML=weekly.map((v,i)=>
-        `<div class="bar-item">
-            <div class="bar" style="height:${Math.max(4,v*18)}px"></div>
-            ${7-i} sem.
-        </div>`
+const wlabel=t=>String(t||"Outros").replace(/^\s*Treino\s*\d+\s*[:\-–—]\s*/i,"").trim()||"Outros";
+const num=v=>{const n=parseFloat(String(v).replace(",","."));return Number.isFinite(n)?n:0;};
+const est1rm=(w,r)=>r>0?w*(1+Math.min(r,12)/30):w;
+const hDate=h=>new Date(h.date);
+const fmtInt=v=>Math.round(v).toLocaleString("pt-BR");
+const fmt1=v=>(Math.round(v*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmtVol=v=>v>=10000?(v/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})+" t":fmtInt(v)+" kg";
+const plannedPerWeek=()=>state.workouts.filter(w=>w.exercises.length).length||6;
+const plannedUpToToday=()=>state.workouts.slice(0,todayIndex()+1).filter(w=>w.exercises.length).length;
+const themeNow=()=>THEMES[activeProfile]||THEMES.friend;
+
+function progWindow(){
+    const cur=wkStart(new Date());
+    let weeks;
+    if(progPeriod==="all"){
+        const first=state.history.reduce((m,h)=>Math.min(m,hDate(h).getTime()),Infinity);
+        weeks=Number.isFinite(first)?Math.min(52,Math.max(4,Math.round((cur-wkStart(first))/604800000)+1)):4;
+    }else weeks=+progPeriod;
+    const start=new Date(cur);
+    start.setDate(start.getDate()-7*(weeks-1));
+    return {weeks,start,cur};
+}
+
+function aggregate(start,weeks){
+    const W=Array.from({length:weeks},(_,i)=>{
+        const s=new Date(start);s.setDate(s.getDate()+7*i);
+        return {start:s,done:0,part:0,volume:0,sets:0,skipped:0,time:0};
+    });
+    state.history.forEach(h=>{
+        const i=Math.round((wkStart(hDate(h))-start)/604800000);
+        if(i<0||i>=weeks)return;
+        const w=W[i],p=h.percent||0;
+        if(p>=100){w.done++;w.time+=h.duration||0;}
+        else if(p>0)w.part++;
+        (h.sets||[]).forEach(s=>{
+            if(s.done){w.sets++;w.volume+=num(s.weight)*num(s.reps);}
+            else if(s.skipped)w.skipped++;
+        });
+    });
+    return W;
+}
+
+function exSessions(name){
+    return state.history.map(h=>{
+        const ss=(h.sets||[]).filter(s=>s.name===name&&s.done&&num(s.weight)>0);
+        if(!ss.length)return null;
+        return {
+            date:hDate(h),
+            maxW:Math.max(...ss.map(s=>num(s.weight))),
+            rm:Math.max(...ss.map(s=>est1rm(num(s.weight),num(s.reps)))),
+            vol:ss.reduce((a,s)=>a+num(s.weight)*num(s.reps),0)
+        };
+    }).filter(Boolean).sort((a,b)=>a.date-b.date);
+}
+
+function weightedNames(){
+    const n=new Set();
+    state.history.forEach(h=>(h.sets||[]).forEach(s=>{if(s.done&&num(s.weight)>0)n.add(s.name);}));
+    return [...n];
+}
+
+function muscleCounts(from){
+    const byId={},byName={};
+    allExercises().forEach(e=>{byId[e.id]=grp(e.muscle);byName[e.name]=grp(e.muscle);});
+    const c={};
+    state.history.forEach(h=>{
+        if(hDate(h)<from)return;
+        (h.sets||[]).forEach(s=>{
+            if(!s.done)return;
+            const m=s.muscle?grp(s.muscle):(byId[s.exerciseId]||byName[s.name]||"Outros");
+            c[m]=(c[m]||0)+1;
+        });
+    });
+    return c;
+}
+
+function weeklyStreak(){
+    const cur=wkStart(new Date()),start=new Date(cur);
+    start.setDate(start.getDate()-7*51);
+    const W=aggregate(start,52);
+    let n=0,i=51;
+    if(W[i].done<3)i--;
+    while(i>=0&&W[i].done>=3){n++;i--;}
+    return n;
+}
+
+/* ----- alertas e insights ----- */
+function buildAlerts(){
+    const A=[],H=state.history;
+
+    if(!H.length)return [{lvl:"info",ic:"✿",t:"Comece a registrar",x:"Finalize seu primeiro treino para liberar indicadores, gráficos e alertas."}];
+
+    const today=new Date();today.setHours(0,0,0,0);
+    const dayMs=86400000;
+
+    /* dias sem treinar */
+    const last=Math.max(...H.map(h=>new Date(h.updatedAt||h.date).getTime()));
+    const ld=new Date(last);ld.setHours(0,0,0,0);
+    const days=Math.round((today-ld)/dayMs);
+    if(days>=7)A.push({lvl:"bad",ic:"⏰",t:`${days} dias sem treinar`,x:"Retome hoje com o treino do dia. Mesmo um treino mais curto já mantém o hábito."});
+    else if(days>=4)A.push({lvl:"warn",ic:"⏰",t:`${days} dias sem treinar`,x:"Falta pouco para perder o ritmo. Escolha um treino na tela inicial."});
+
+    /* ritmo da semana */
+    const t=todayIndex(),cur=wkStart(new Date());
+    const expected=state.workouts.slice(0,t).filter(w=>w.exercises.length).length;
+    const doneWeek=H.filter(h=>(h.percent||0)>=100&&inWeek(h,cur)).length;
+    if(expected-doneWeek>=2)A.push({lvl:"warn",ic:"📅",t:`${expected-doneWeek} treinos atrás da semana`,x:`Você concluiu ${doneWeek} de ${expected} treinos que já deveriam ter acontecido esta semana.`});
+    else if(t>=3&&doneWeek>=expected&&doneWeek>0)A.push({lvl:"good",ic:"✅",t:"Semana em dia",x:`${doneWeek} treino(s) concluído(s) até agora.`});
+
+    /* aderência nas últimas 4 semanas */
+    const s4=new Date(cur);s4.setDate(s4.getDate()-21);
+    const W4=aggregate(s4,4),d4=W4.reduce((a,w)=>a+w.done,0),
+        pl4=plannedPerWeek()*3+plannedUpToToday(),adh=pl4?Math.min(100,Math.round(d4/pl4*100)):0;
+    if(adh<60)A.push({lvl:"warn",ic:"📉",t:`Aderência de ${adh}% nas últimas 4 semanas`,x:`${d4} de ${pl4} treinos planejados. Se a ficha está pesada, a administradora pode ajustar os dias.`});
+    else if(adh>=85)A.push({lvl:"good",ic:"🔥",t:`Aderência de ${adh}% nas últimas 4 semanas`,x:"Constância excelente. É ela que gera resultado."});
+
+    /* séries não realizadas */
+    const sk=W4.reduce((a,w)=>a+w.skipped,0),dn=W4.reduce((a,w)=>a+w.sets,0);
+    if(sk+dn>=10&&sk/(sk+dn)>=0.2){
+        const cnt={};
+        H.filter(h=>hDate(h)>=s4).forEach(h=>(h.sets||[]).forEach(s=>{if(s.skipped)cnt[s.name]=(cnt[s.name]||0)+1;}));
+        const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,2).map(e=>`${e[0]} (${e[1]})`).join(", ");
+        A.push({lvl:"warn",ic:"✕",t:`${Math.round(sk/(sk+dn)*100)}% das séries ficaram sem realizar`,x:top?`Mais puladas: ${top}. Vale revisar carga, equipamento ou ordem dos exercícios.`:"Vale revisar carga e duração dos treinos."});
+    }
+
+    /* recordes, queda de carga e estagnação */
+    const prs=[],drops=[],stag=[],inFicha=new Set(allExercises().map(e=>e.name));
+    weightedNames().forEach(name=>{
+        const S=exSessions(name),n=S.length;
+        if(n<2)return;
+        const lastS=S[n-1],ageDays=(today-lastS.date)/dayMs;
+        const prevMax=Math.max(...S.slice(0,n-1).map(s=>s.maxW));
+        if(lastS.maxW>prevMax&&ageDays<=7)prs.push(`${name} ${fmt1(lastS.maxW)} kg`);
+        if(ageDays<=14&&lastS.maxW<S[n-2].maxW*0.9)drops.push(`${name}: ${fmt1(S[n-2].maxW)} → ${fmt1(lastS.maxW)} kg`);
+        if(n>=4&&ageDays<=21&&inFicha.has(name)){
+            let run=-1,idx=-1;
+            S.forEach((s,i)=>{if(s.maxW>run){run=s.maxW;idx=i;}});
+            const st=n-1-idx;
+            if(st>=3)stag.push({name,st,w:run});
+        }
+    });
+    if(prs.length)A.push({lvl:"good",ic:"🏆",t:prs.length>1?`${prs.length} novos recordes de carga`:"Novo recorde de carga",x:prs.slice(0,3).join(" • ")+(prs.length>3?` e mais ${prs.length-3}`:"")});
+    if(drops.length)A.push({lvl:"warn",ic:"↘",t:"Carga menor que no treino anterior",x:drops.slice(0,3).join(" • ")+". Pode ser cansaço, sono ou técnica; observe nos próximos treinos."});
+    if(stag.length){
+        stag.sort((a,b)=>b.st-a.st);
+        A.push({lvl:"info",ic:"⏸",t:"Cargas estagnadas",x:stag.slice(0,3).map(s=>`${s.name} (${fmt1(s.w)} kg, ${s.st} treinos)`).join(" • ")+". Tente +1 a 2 kg ou mais repetições."});
+    }
+
+    /* grupos musculares sem estímulo (14 dias) */
+    const first=Math.min(...H.map(h=>hDate(h).getTime()));
+    if(today-first>14*dayMs&&days<14){
+        const d14=new Date(today);d14.setDate(d14.getDate()-14);
+        const mc=muscleCounts(d14),
+            miss=[...new Set(allExercises().map(e=>grp(e.muscle)))].filter(m=>!mc[m]);
+        if(miss.length)A.push({lvl:"warn",ic:"🎯",t:"Grupos sem treino há 14 dias",x:miss.slice(0,4).join(", ")+(miss.length>4?` e mais ${miss.length-4}`:"")+"."});
+    }
+
+    /* água (últimos 7 dias) */
+    const goal=state.prefs.waterGoal||2000;
+    let wsum=0,wdays=0;
+    for(let i=0;i<7;i++){
+        const d=new Date(today);d.setDate(d.getDate()-i);
+        const v=waterTotal(waterKey(d));
+        if(v>0)wdays++;
+        wsum+=v;
+    }
+    if(wdays>0){
+        const avg=wsum/7;
+        if(avg<goal*0.7)A.push({lvl:"warn",ic:"💧",t:"Hidratação abaixo da meta",x:`Média de ${fmt1(avg/1000)} L/dia nos últimos 7 dias (meta ${fmt1(goal/1000)} L). Use o lembrete na aba Água.`});
+        else if(avg>=goal)A.push({lvl:"good",ic:"💧",t:"Meta de água batida",x:`Média de ${fmt1(avg/1000)} L/dia nos últimos 7 dias.`});
+    }
+
+    /* medidas semanais */
+    const md=Object.keys(state.measures||{}).sort();
+    if(md.length){
+        const d=Math.round((today-keyToDate(md[md.length-1]))/dayMs);
+        if(d>=8)A.push({lvl:"info",ic:"📏",t:"Hora de medir de novo",x:`Última medição há ${d} dias. A evolução fica mais clara com registro semanal.`});
+    }
+
+    /* sequência */
+    const st=weeklyStreak();
+    if(st>=2)A.push({lvl:"good",ic:"🔥",t:`${st} semanas seguidas treinando`,x:"Semanas com 3 ou mais treinos concluídos."});
+
+    const order={bad:0,warn:1,info:2,good:3};
+    A.sort((a,b)=>order[a.lvl]-order[b.lvl]);
+    return A.slice(0,8);
+}
+
+function renderAlerts(){
+    $("progAlerts").innerHTML=buildAlerts().map(a=>
+        `<div class="alert ${a.lvl}"><span class="ai">${a.ic}</span><div><b>${esc(a.t)}</b><p>${esc(a.x)}</p></div></div>`
     ).join("");
 }
 
-let progressGroups={};
+/* ----- indicadores ----- */
+function deltaTxt(cur,prev,unit){
+    if(prev==null)return "";
+    if(!prev&&!cur)return "";
+    if(!prev)return `<em class="up">▲ novo</em>`;
+    const p=Math.round((cur-prev)/prev*100);
+    if(p===0)return `<em>= igual ao período anterior</em>`;
+    return `<em class="${p>0?"up":"dn"}">${p>0?"▲":"▼"} ${Math.abs(p)}%${unit||""} vs período anterior</em>`;
+}
 
+function renderKpis(win,W){
+    const per=plannedPerWeek(),sum=(a,k)=>a.reduce((s,w)=>s+w[k],0),
+        plan=a=>a.reduce((s,w)=>s+(w.start.getTime()===win.cur.getTime()?plannedUpToToday():per),0);
+
+    let P=null;
+    if(progPeriod!=="all"&&state.history.some(h=>hDate(h)<win.start)){
+        const ps=new Date(win.start);ps.setDate(ps.getDate()-7*win.weeks);
+        P=aggregate(ps,win.weeks);
+    }
+
+    const done=sum(W,"done"),pl=plan(W),adh=pl?Math.min(100,Math.round(done/pl*100)):0,
+        padh=P?Math.min(100,Math.round(sum(P,"done")/(per*win.weeks)*100)):null,
+        vol=sum(W,"volume"),sets=sum(W,"sets"),sk=sum(W,"skipped"),
+        avgMin=done?Math.round(sum(W,"time")/done/60000):0;
+
+    const wk=Object.keys(state.weight||{}).sort().filter(k=>progPeriod==="all"||keyToDate(k)>=win.start);
+    let pesoV="—",pesoS="Sem registros no período";
+    if(wk.length){
+        const a=state.weight[wk[0]],b=state.weight[wk[wk.length-1]],goal=state.prefs.weightGoal;
+        pesoV=fmt1(b)+" kg";
+        pesoS=wk.length>1?`${b-a<0?"▼":b-a>0?"▲":"="} ${fmt1(Math.abs(b-a))} kg no período`:"Registre mais vezes para ver a tendência";
+        if(goal)pesoS+=` • meta ${fmt1(goal)} kg`;
+    }
+
+    const today=new Date();today.setHours(0,0,0,0);
+    let ws=0;
+    for(let i=0;i<7;i++){const d=new Date(today);d.setDate(d.getDate()-i);ws+=waterTotal(waterKey(d));}
+    const goalW=state.prefs.waterGoal||2000;
+
+    const K=[
+        ["Treinos concluídos",done,deltaTxt(done,P?sum(P,"done"):null)],
+        ["Aderência ao plano",adh+"%",P?`<em class="${adh>=padh?"up":"dn"}">${adh>=padh?"▲":"▼"} ${Math.abs(adh-padh)} pontos vs anterior</em>`:`<em>${done} de ${pl} planejados</em>`],
+        ["Volume total",fmtVol(vol),deltaTxt(vol,P?sum(P,"volume"):null)],
+        ["Séries feitas",sets,sk?`<em class="dn">✕ ${sk} não realizada(s)</em>`:deltaTxt(sets,P?sum(P,"sets"):null)],
+        ["Tempo médio / treino",avgMin?avgMin+" min":"—","<em>só treinos concluídos</em>"],
+        ["Sequência",weeklyStreak()+" sem.","<em>semanas com 3+ treinos</em>"],
+        ["Peso",pesoV,`<em>${pesoS}</em>`],
+        ["Água (média 7 dias)",fmt1(ws/7/1000)+" L",`<em>meta ${fmt1(goalW/1000)} L/dia</em>`]
+    ];
+
+    $("progKpis").innerHTML=K.map(k=>`<article class="kpi"><span class="kl">${k[0]}</span><strong>${k[1]}</strong>${k[2]}</article>`).join("");
+}
+
+/* ----- mapa de constância (12 semanas) ----- */
+function renderHeat(){
+    const cur=wkStart(new Date()),weeks=12,start=new Date(cur);
+    start.setDate(start.getDate()-7*(weeks-1));
+
+    const map={};
+    state.history.forEach(h=>{
+        const k=waterKey(hDate(h)),v=(h.percent||0)>=100?2:(h.percent||0)>0?1:0;
+        map[k]=Math.max(map[k]||0,v);
+    });
+
+    const now=new Date(),todayK=waterKey(now);
+    let cells="";
+    for(let w=0;w<weeks;w++)for(let d=0;d<7;d++){
+        const day=new Date(start);day.setDate(day.getDate()+w*7+d);
+        const k=waterKey(day),
+            cls=day>now&&k!==todayK?"fut":map[k]===2?"l2":map[k]===1?"l1":"l0";
+        cells+=`<i class="hc ${cls} ${k===todayK?"today":""}" title="${day.toLocaleDateString("pt-BR")}"></i>`;
+    }
+
+    $("progHeat").innerHTML=`<div class="heat-days">${["S","T","Q","Q","S","S","D"].map(x=>`<i>${x}</i>`).join("")}</div><div class="heat">${cells}</div>`;
+}
+
+/* ----- gráficos ----- */
+function cvSize(id,W,H){
+    const c=$(id),r=devicePixelRatio||1,x=c.getContext("2d");
+    c.style.width=W+"px";c.style.height=H+"px";
+    c.width=W*r;c.height=H*r;
+    x.setTransform(r,0,0,r,0,0);
+    x.clearRect(0,0,W,H);
+    return x;
+}
+
+function weekLabels(W,x,pad,bw,H){
+    const k=Math.ceil(W.length/6);
+    x.fillStyle="#887780";x.font="10px sans-serif";x.textAlign="center";
+    W.forEach((a,i)=>{
+        if(i%k===0||i===W.length-1)x.fillText(fmtDM(a.start),pad+i*bw+bw/2,H-8);
+    });
+}
+
+function drawWeeklyChart(W){
+    const w=$("chWeekly").clientWidth||320,H=190,x=cvSize("chWeekly",w,H),th=themeNow(),
+        pad=30,top=18,base=H-24,planned=plannedPerWeek(),
+        max=Math.max(planned,...W.map(a=>a.done+a.part))+1,
+        y=v=>base-v/max*(base-top),bw=(w-pad-6)/W.length;
+
+    x.strokeStyle=th.border;x.lineWidth=1;
+    x.beginPath();x.moveTo(pad,top-6);x.lineTo(pad,base);x.lineTo(w-4,base);x.stroke();
+
+    x.fillStyle="#887780";x.font="10px sans-serif";x.textAlign="right";
+    x.fillText("0",pad-5,base);x.fillText(String(max-1),pad-5,y(max-1)+3);
+
+    x.setLineDash([4,4]);x.strokeStyle=th.dark;x.beginPath();
+    x.moveTo(pad,y(planned));x.lineTo(w-4,y(planned));x.stroke();x.setLineDash([]);
+    x.fillStyle=th.dark;x.textAlign="left";x.fillText("meta "+planned,pad+4,y(planned)-4);
+
+    W.forEach((a,i)=>{
+        const bx=pad+i*bw+bw*0.15,bwid=bw*0.7;
+        x.fillStyle=th.primary;
+        x.fillRect(bx,y(a.done),bwid,base-y(a.done));
+        if(a.part){x.fillStyle=th.secondary+"99";x.fillRect(bx,y(a.done+a.part),bwid,y(a.done)-y(a.done+a.part));}
+        if(bw>=16&&a.done){x.fillStyle="#332a30";x.textAlign="center";x.fillText(a.done,bx+bwid/2,y(a.done+a.part)-4);}
+    });
+
+    weekLabels(W,x,pad,bw,H);
+}
+
+function drawVolumeChart(W){
+    const w=$("chVolume").clientWidth||320,H=190,x=cvSize("chVolume",w,H),th=themeNow(),
+        pad=40,top=20,base=H-24,vals=W.map(a=>a.volume),mx=Math.max(...vals);
+
+    if(!mx){
+        x.fillStyle="#887780";x.font="13px sans-serif";x.textAlign="center";
+        x.fillText("Registre cargas e repetições para ver o volume.",w/2,H/2);
+        return;
+    }
+
+    const y=v=>base-v/(mx*1.15)*(base-top),bw=(w-pad-8)/W.length,
+        px=i=>pad+i*bw+bw/2;
+
+    x.strokeStyle=th.border;x.lineWidth=1;
+    x.beginPath();x.moveTo(pad,top-6);x.lineTo(pad,base);x.lineTo(w-4,base);x.stroke();
+    x.fillStyle="#887780";x.font="10px sans-serif";x.textAlign="right";
+    x.fillText("0",pad-5,base);x.fillText(fmtInt(mx),pad-5,y(mx)+3);
+
+    x.beginPath();x.moveTo(px(0),base);
+    vals.forEach((v,i)=>x.lineTo(px(i),y(v)));
+    x.lineTo(px(vals.length-1),base);x.closePath();
+    x.fillStyle=th.secondary+"55";x.fill();
+
+    x.strokeStyle=th.dark;x.lineWidth=3;x.lineJoin="round";x.beginPath();
+    vals.forEach((v,i)=>i?x.lineTo(px(i),y(v)):x.moveTo(px(i),y(v)));x.stroke();
+
+    vals.forEach((v,i)=>{
+        x.fillStyle=th.dark;x.beginPath();x.arc(px(i),y(v),W.length>14?2.5:4.5,0,7);x.fill();
+    });
+
+    const li=vals.length-1;
+    x.fillStyle="#332a30";x.textAlign="center";x.fillText(fmtInt(vals[li]),Math.min(px(li),w-18),y(vals[li])-9);
+
+    weekLabels(W,x,pad,bw,H);
+}
+
+/* ----- séries por grupo muscular ----- */
+function renderMuscle(win){
+    const c=muscleCounts(win.start),
+        all=[...new Set([...allExercises().map(e=>grp(e.muscle)),...Object.keys(c)])],
+        rows=all.map(m=>({m,avg:(c[m]||0)/win.weeks})).sort((a,b)=>b.avg-a.avg);
+
+    if(!rows.some(r=>r.avg>0)){
+        $("progMuscle").innerHTML=`<p class="muted">Conclua séries nos treinos para ver a distribuição por músculo.</p>`;
+        return;
+    }
+
+    const mx=Math.max(24,...rows.map(r=>r.avg))*1.05;
+
+    $("progMuscle").innerHTML=rows.map(r=>{
+        const cls=r.avg===0?"zero":r.avg<10?"low":r.avg<=20?"ok":"high",
+            txt=r.avg===0?"sem séries":r.avg<10?"abaixo":r.avg<=20?"ideal":"alto";
+        return `<div class="mrow"><div class="mhead"><b>${esc(r.m)}</b><span class="${cls}">${fmt1(r.avg)}/sem • ${txt}</span></div>
+            <div class="mtrack"><div class="mband" style="left:${10/mx*100}%;width:${10/mx*100}%"></div><div class="mfill ${cls}" style="width:${Math.max(r.avg>0?2:0,r.avg/mx*100)}%"></div></div></div>`;
+    }).join("");
+}
+
+/* ----- recordes ----- */
+function renderPRs(){
+    const best={};
+    state.history.forEach(h=>(h.sets||[]).forEach(s=>{
+        if(!s.done||num(s.weight)<=0)return;
+        const rm=est1rm(num(s.weight),num(s.reps)),b=best[s.name];
+        if(!b||rm>b.rm)best[s.name]={name:s.name,rm,w:num(s.weight),r:num(s.reps),date:hDate(h)};
+    }));
+
+    const list=Object.values(best).sort((a,b)=>b.date-a.date).slice(0,8);
+
+    if(!list.length){
+        $("progPRs").innerHTML=`<p class="muted">Registre cargas durante os treinos para ver seus recordes.</p>`;
+        return;
+    }
+
+    const now=Date.now();
+    $("progPRs").innerHTML=list.map(p=>
+        `<div class="pr"><div><b>${esc(p.name)}</b><span>${fmt1(p.w)} kg${p.r?` × ${p.r}`:""}${p.r?` • 1RM est. ≈ ${fmt1(p.rm)} kg`:""}</span></div>
+        <div class="pr-d">${fmtDM(p.date)}${now-p.date<14*86400000?"<i>NOVO</i>":""}</div></div>`
+    ).join("")+`<p class="muted" style="margin:8px 0 0">1RM estimado: fórmula de Epley (carga × (1 + reps/30)).</p>`;
+}
+
+/* ----- evolução por exercício ----- */
 function fillProgressExercises(){
     const names=[...(progressGroups[$("progressGroup").value]||[])],
         old=$("progressExercise").value;
@@ -613,68 +998,79 @@ function fillProgressExercises(){
 
 $("progressGroup").onchange=fillProgressExercises;
 
+$("progPeriod").onclick=e=>{
+    const b=e.target.closest("button");
+    if(!b)return;
+    progPeriod=b.dataset.p;
+    renderProgress();
+};
+
+$("progMetric").onclick=e=>{
+    const b=e.target.closest("button");
+    if(!b)return;
+    progMetric=b.dataset.m;
+    document.querySelectorAll("#progMetric button").forEach(x=>x.classList.toggle("on",x===b));
+    drawChart();
+};
+
 function drawChart(){
-    let canvas=$("progressChart"),
-        ctx=canvas.getContext("2d"),
-        name=$("progressExercise").value,
-        theme=THEMES[activeProfile]||THEMES.friend;
+    const name=$("progressExercise").value,th=themeNow(),wrap=$("chWrap"),
+        key={carga:"maxW",rm:"rm",vol:"vol"}[progMetric],
+        label={carga:"Carga máxima",rm:"1RM estimado",vol:"Volume"}[progMetric],
+        all=name?exSessions(name):[];
 
-    let records=state.history.flatMap(h=>
-        h.sets.filter(s=>s.name===name&&s.done&&+s.weight>0).map(s=>({
-            date:new Date(h.date),
-            weight:+s.weight
-        }))
-    );
+    let run=-Infinity;
+    all.forEach((s,i)=>{s.pr=i>0&&s[key]>run+1e-9;run=Math.max(run,s[key]);});
 
-    let width=canvas.clientWidth||300,
-        ratio=devicePixelRatio||1;
+    const win=progWindow(),
+        pts=progPeriod==="all"?all:all.filter(s=>s.date>=win.start),
+        step=50,pad=38,H=220,
+        W=Math.max(wrap.clientWidth||300,pad+pts.length*step+10),
+        x=cvSize("progressChart",W,H);
 
-    canvas.width=width*ratio;
-    canvas.height=220*ratio;
-
-    ctx.scale(ratio,ratio);
-    ctx.clearRect(0,0,width,220);
-
-    if(!records.length){
-        $("chartNote").textContent="Registre cargas durante seus treinos para acompanhar a evolução.";
+    if(!pts.length){
+        $("chartNote").textContent=name?"Sem cargas registradas neste período para este exercício.":"Escolha um exercício.";
         return;
     }
 
-    let max=Math.max(...records.map(r=>r.weight)),
-        min=Math.min(...records.map(r=>r.weight)),
-        pad=28;
+    const vs=pts.map(p=>p[key]),mn=Math.min(...vs),mx=Math.max(...vs),sp=(mx-mn)||Math.max(2,mx*0.1),
+        lo=Math.max(0,mn-sp*0.3),hi=mx+sp*0.3,top=22,base=H-34,
+        y=v=>base-(v-lo)/(hi-lo)*(base-top),px=i=>pad+step*(i+.5);
 
-    ctx.strokeStyle=theme.border;
-    ctx.lineWidth=1;
-    ctx.beginPath();
-    ctx.moveTo(pad,15);
-    ctx.lineTo(pad,185);
-    ctx.lineTo(width-10,185);
-    ctx.stroke();
+    x.strokeStyle=th.border;x.lineWidth=1;
+    x.beginPath();x.moveTo(pad,top-8);x.lineTo(pad,base);x.lineTo(W-6,base);x.stroke();
 
-    ctx.strokeStyle=theme.primary;
-    ctx.lineWidth=3;
-    ctx.beginPath();
+    const f=v=>progMetric==="vol"?fmtInt(v):fmt1(v);
+    x.font="10px sans-serif";x.fillStyle="#887780";x.textAlign="right";
+    x.fillText(f(hi),pad-4,top);x.fillText(f(lo),pad-4,base);
+    x.textAlign="center";
+    pts.forEach((p,i)=>x.fillText(fmtDM(p.date),px(i),H-14));
 
-    records.forEach((r,i)=>{
-        let x=pad+i*(width-pad-18)/Math.max(1,records.length-1),
-            y=175-(r.weight-min)/(max-min||1)*135;
-        if(i===0)ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
+    x.strokeStyle=th.dark;x.lineWidth=3;x.lineJoin="round";x.beginPath();
+    pts.forEach((p,i)=>i?x.lineTo(px(i),y(p[key])):x.moveTo(px(i),y(p[key])));x.stroke();
+
+    pts.forEach((p,i)=>{
+        if(p.pr){x.strokeStyle="#e3a03a";x.lineWidth=3;x.beginPath();x.arc(px(i),y(p[key]),8,0,7);x.stroke();}
+        x.fillStyle=th.dark;x.beginPath();x.arc(px(i),y(p[key]),4.5,0,7);x.fill();
+        x.fillStyle="#332a30";x.fillText(f(p[key]),px(i),y(p[key])-13);
     });
 
-    ctx.stroke();
+    wrap.scrollLeft=wrap.scrollWidth;
 
-    records.forEach((r,i)=>{
-        let x=pad+i*(width-pad-18)/Math.max(1,records.length-1),
-            y=175-(r.weight-min)/(max-min||1)*135;
-        ctx.fillStyle=theme.secondary;
-        ctx.beginPath();
-        ctx.arc(x,y,4.5,0,7);
-        ctx.fill();
-    });
+    /* leitura automática */
+    const first=vs[0],lastV=vs[vs.length-1],d=lastV-first,
+        parts=[`${label}: ${f(first)} → ${f(lastV)} kg (${d>0?"+":d<0?"−":""}${f(Math.abs(d))}) em ${pts.length} treino(s)`];
 
-    $("chartNote").textContent=`${records.length} registro(s) • melhor carga: ${max} kg`;
+    const n=all.length;
+    if(n>=2){
+        const S=all;let r=-1,idx=-1;
+        S.forEach((s,i)=>{if(s.maxW>r){r=s.maxW;idx=i;}});
+        const st=n-1-idx;
+        if(S[n-1].pr&&progMetric!=="vol")parts.push("🏆 último treino foi recorde");
+        if(n>=4&&st>=3)parts.push(`⚠ sem aumento de carga há ${st} treinos`);
+        if(S[n-1].maxW<S[n-2].maxW*0.9)parts.push("↘ carga caiu no último treino");
+    }
+    $("chartNote").textContent=parts.join(" • ")+"  (anel dourado = recorde)";
 }
 
 /* =========================================
