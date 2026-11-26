@@ -430,7 +430,7 @@ function renderWorkouts(){
             let row=document.createElement("div");
             row.className="exercise-row";
             row.innerHTML=`
-                <div class="exercise-icon">♧</div>
+                <div class="exercise-icon">${DUMBBELL}</div>
                 <div class="exercise-info">
                     <b>${esc(e.name)}</b>
                     <small>${esc(e.muscle)} • ${esc(e.equipment)} • ${e.sets} × ${esc(e.reps)}</small>
@@ -499,6 +499,7 @@ function renderHistory(){
             duration=Math.floor((h.duration||0)/60000),
             sets=h.sets||[],
             completedSets=sets.filter(s=>s.done).length,
+            skippedSets=sets.filter(s=>s.skipped).length,
             percent=Number.isFinite(+h.percent)?Math.max(0,Math.min(100,+h.percent)):0;
 
         return `
@@ -512,7 +513,7 @@ function renderHistory(){
                 </div>
                 <div class="history-info">
                     <span>♡ ${h.exerciseCount||0} exercícios</span>
-                    <span>✓ ${completedSets} séries concluídas</span>
+                    <span>✓ ${completedSets} séries feitas</span>${skippedSets?`<span>✕ ${skippedSets} não realizadas</span>`:""}
                     <span>◷ ${duration} min</span>
                 </div>
                 <div class="history-progress"><div style="width:${percent}%"></div></div>
@@ -571,17 +572,15 @@ function renderProgress(){
     $("bestSet").textContent=sets.length?Math.max(...sets.map(s=>+s.weight)):"—";
 
     const g={},addG=(k,n)=>{(g[k]=g[k]||new Set()).add(n);},
-        inFicha=new Set(allExercises().map(e=>e.name));
+        wlabel=t=>String(t||"Outros").replace(/^\s*Treino\s*\d+\s*[:\-–—]\s*/i,"").trim()||"Outros";
 
-    allExercises().forEach(e=>addG(grp(e.muscle),e.name));
-    state.history.forEach(h=>(h.sets||[]).forEach(s=>{
-        if(!inFicha.has(s.name))addG(grp(s.muscle),s.name);
-    }));
+    state.workouts.forEach(w=>w.exercises.forEach(e=>addG(wlabel(w.title),e.name)));
+    state.history.forEach(h=>(h.sets||[]).forEach(s=>addG(wlabel(h.title),s.name)));
 
     progressGroups=g;
 
     const oldG=$("progressGroup").value;
-    $("progressGroup").innerHTML=Object.keys(g).sort().map(k=>`<option>${esc(k)}</option>`).join("");
+    $("progressGroup").innerHTML=Object.keys(g).map(k=>`<option>${esc(k)}</option>`).join("");
     if(g[oldG])$("progressGroup").value=oldG;
 
     fillProgressExercises();
@@ -1128,7 +1127,7 @@ function startWorkout(id,fromId){
     w.exercises.forEach(e=>{
         const saved=h?(h.sets||[]).filter(s=>s.exerciseId===e.id):[];
         session.logs[e.id]=Array.from({length:Math.max(e.sets,saved.length)},(_,i)=>
-            saved[i]?{weight:saved[i].weight,reps:saved[i].reps,done:!!saved[i].done}:{weight:"",reps:"",done:false}
+            saved[i]?{weight:saved[i].weight,reps:saved[i].reps,done:!!saved[i].done,skipped:!!saved[i].skipped}:{weight:"",reps:"",done:false,skipped:false}
         );
     });
 
@@ -1143,6 +1142,16 @@ function startWorkout(id,fromId){
     renderSession();
 }
 
+function sessionStatus(){
+    if(!session)return;
+    const w=state.workouts.find(x=>x.id===session.workoutId);
+    let total=0,marked=0;
+    w.exercises.forEach(e=>(session.logs[e.id]||[]).forEach(s=>{total++;if(s.done||s.skipped)marked++;}));
+    (session.extraSets||[]).forEach(s=>{total++;if(s.done||s.skipped)marked++;});
+    $("sessionCount").textContent=`Exercício ${session.index+1} de ${w.exercises.length} • séries marcadas ${marked}/${total}`+(marked>=total&&total?" • treino completo ✓":"");
+    $("sessionProgress").style.width=(total?marked/total*100:0)+"%";
+}
+
 function renderSession(){
     let w=state.workouts.find(x=>x.id===session.workoutId);
 
@@ -1151,8 +1160,6 @@ function renderSession(){
 
     $("sessionDay").textContent=session.day.toUpperCase();
     $("sessionTitle").textContent=session.title;
-    $("sessionCount").textContent=`Exercício ${session.index+1} de ${w.exercises.length}`;
-    $("sessionProgress").style.width=((session.index+1)/w.exercises.length*100)+"%";
 
     $("exerciseSession").innerHTML=`
         <div class="session-exercise">
@@ -1168,11 +1175,11 @@ function renderSession(){
             </div>
 
             ${logs.map((s,i)=>`
-                <div class="set-row ${s.done?"done":""}">
+                <div class="set-row ${s.done?"done":s.skipped?"skipped":""}">
                     <label>${i+1}</label>
                     <input type="number" min="0" step="0.5" placeholder="0" value="${esc(s.weight)}" data-weight="${i}">
                     <input type="number" min="0" placeholder="—" value="${esc(s.reps)}" data-reps="${i}">
-                    <input type="checkbox" ${s.done?"checked":""} data-done="${i}">
+                    <div class="set-btns"><button type="button" class="sb ok ${s.done?"on":""}" data-done="${i}" aria-label="Feito" title="Feito">✓</button><button type="button" class="sb no ${s.skipped?"on":""}" data-skip="${i}" aria-label="Não realizado" title="Não realizado">✕</button></div>
                 </div>
             `).join("")}
 
@@ -1193,14 +1200,35 @@ function renderSession(){
         el.oninput=()=>logs[+el.dataset.reps].reps=el.value
     );
 
+    const paint=el=>{
+        const i=+(el.dataset.done||el.dataset.skip),row=el.closest(".set-row"),s=logs[i];
+        row.classList.toggle("done",!!s.done);
+        row.classList.toggle("skipped",!!s.skipped);
+        row.querySelector(".ok").classList.toggle("on",!!s.done);
+        row.querySelector(".no").classList.toggle("on",!!s.skipped);
+        sessionStatus();
+    };
+
     $("exerciseSession").querySelectorAll("[data-done]").forEach(el=>
-        el.onchange=()=>{
-            let i=+el.dataset.done;
-            logs[i].done=el.checked;
-            el.closest(".set-row").classList.toggle("done",el.checked);
-            if(el.checked&&state.prefs.autoRest)startTimer(state.prefs.rest);
+        el.onclick=()=>{
+            const s=logs[+el.dataset.done];
+            s.done=!s.done;
+            if(s.done)s.skipped=false;
+            paint(el);
+            if(s.done&&state.prefs.autoRest)startTimer(state.prefs.rest);
         }
     );
+
+    $("exerciseSession").querySelectorAll("[data-skip]").forEach(el=>
+        el.onclick=()=>{
+            const s=logs[+el.dataset.skip];
+            s.skipped=!s.skipped;
+            if(s.skipped)s.done=false;
+            paint(el);
+        }
+    );
+
+    sessionStatus();
 
     $("finishSession").onclick=finishSession;
 }
@@ -1235,7 +1263,7 @@ function finishSession(){
         ...session.extraSets
     ];
 
-    let done=sets.filter(s=>s.done).length,
+    let done=sets.filter(s=>s.done||s.skipped).length,
         percent=Math.round(done/Math.max(1,sets.length)*100),
         duration=(session.prevDuration||0)+Date.now()-session.start,
         old=session.historyId?state.history.find(x=>x.id===session.historyId):null;
@@ -2092,6 +2120,8 @@ function bindCloud(){
 
     updateViewBar();
 }
+
+const DUMBBELL='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>';
 
 /* INICIALIZAÇÃO DO APLICATIVO */
 
