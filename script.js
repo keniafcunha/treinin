@@ -1,18 +1,62 @@
 const DAYS=["Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado","Domingo"],SHORT=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"];
 
 const seed=[
-["Segunda-feira","Treino 1: Quadríceps","Quadríceps",[
-["Hack Squat","Quadríceps","Hack squat",3,"12 a 15"],["Leg Press","Quadríceps","Leg press",3,"12 a 15"],["Agachamento Smith","Quadríceps","Smith",3,"12 a 15"],["Afundo","Quadríceps/Glúteos","Peso livre",3,"12 a 15"],["Cadeira Extensora","Quadríceps","Máquina",3,"12 a 15"],["Cadeira Adutora","Adutores","Máquina",3,"12 a 15"],["Prancha alta com elevação de joelho","Abdominal","Peso corporal",3,"30 a 45 s"]]],
-["Terça-feira","Treino 2: Costas","Costas",[
-["Remada Curvada","Costas","Barra",3,"12 a 15"],["Remada Baixa","Costas","Cabo",3,"12 a 15"],["Puxada Alta Frente","Costas","Polia",3,"12 a 15"],["Pulldown Neutro","Costas","Polia",3,"12 a 15"],["Remada Unilateral","Costas","Halter",3,"12 a 15"],["Face Pull","Costas/Deltoide posterior","Cabo",3,"15 a 20"],["Prancha lateral","Abdominal","Peso corporal",3,"30 a 45 s por lado"]]],
-["Quarta-feira","Treino 3: Posteriores","Posteriores",[
-["Stiff","Posteriores/Glúteos","Barra ou halteres",3,"12 a 15"],["Agachamento Búlgaro","Posteriores/Glúteos","Halteres",3,"12 a 15"],["Prensa Unilateral","Quadríceps/Posteriores","Leg press",3,"12 a 15"],["Mesa Flexora","Posteriores","Máquina",3,"12 a 15"],["Flexora Sentada","Posteriores","Máquina",3,"12 a 15"],["Panturrilha em Pé","Panturrilhas","Máquina",4,"15 a 20"],["Elevação de pernas suspensa","Abdominal","Barra",3,"12 a 15"]]],
-["Quinta-feira","Treino 4: Ombro e Peito","Ombro e Peito",[
-["Supino Inclinado","Peito","Halteres ou máquina",3,"12 a 15"],["Desenvolvimento com Halteres","Ombros","Halteres",3,"12 a 15"],["Voador","Peito","Máquina",3,"12 a 15"],["Crucifixo","Peito","Halteres",3,"12 a 15"],["Elevação Lateral","Ombros","Halteres",3,"12 a 15"],["Elevação Frontal","Ombros","Halteres",3,"12 a 15"],["Prancha lateral com elevação de quadril","Abdominal","Peso corporal",3,"30 a 45 s por lado"]]],
-["Sexta-feira","Treino 5: Glúteos","Glúteos",[
-["Hip Thrust","Glúteos","Barra ou máquina",3,"12 a 15"],["Agachamento Búlgaro","Glúteos","Halteres",3,"12 a 15"],["Elevação Pélvica Unilateral","Glúteos","Peso corporal/halter",3,"12 a 15"],["Glúteo no Cabo","Glúteos","Cabo",3,"12 a 15"],["Coice no Cabo","Glúteos","Cabo",3,"12 a 15"],["Cadeira Abdutora","Glúteos/Abdutores","Máquina",3,"12 a 15"],["Crunch","Abdominal","Peso corporal",3,"20 a 30"]]],
-["Sábado","Treino 6: Bíceps e Tríceps","Bíceps e Tríceps",[
-["Rosca Direta","Bíceps","Barra",3,"12 a 15"],["Tríceps na Polia","Tríceps","Polia",3,"12 a 15"],["Rosca Martelo","Bíceps","Halteres",3,"12 a 15"],["Tríceps Francês","Tríceps","Halter",3,"12 a 15"],["Rosca Concentrada","Bíceps","Halter",3,"12 a 15"],["Tríceps Coice","Tríceps","Halter",3,"12 a 15"],["Prancha com toque no ombro","Abdominal","Peso corporal",3,"30 a 45 s"]]],
+["Segunda-feira","Treino 1: Quadríceps + Glúteos","Quadríceps + Glúteos",[
+["Hack Squat","Quadríceps","Hack squat",3,"10 a 12"],
+["Leg Press","Quadríceps","Leg press",3,"10 a 12"],
+["Cadeira Extensora","Quadríceps","Máquina",3,"12 a 15"],
+["Hack Squat Invertido","Quadríceps","Hack squat",3,"10 a 12"],
+["Agachamento Búlgaro","Glúteos/Quadríceps","Halteres",3,"10 a 12"],
+["Glúteo no Cabo","Glúteos","Cabo",3,"12 a 15"],
+["Cadeira Adutora","Adutores","Máquina",3,"12 a 15"],
+["Prancha","Abdominal","Peso corporal",3,"30 a 45 s"]
+]],
+["Terça-feira","Treino 2: Costas + Ombros","Costas + Ombros",[
+["Remada Curvada","Costas","Barra",3,"10 a 12"],
+["Puxada Alta Frente","Costas","Polia",3,"10 a 12"],
+["Remada Unilateral","Costas","Halter",3,"10 a 12"],
+["Face Pull","Deltoide posterior/Costas","Cabo",3,"15 a 20"],
+["Desenvolvimento com Halteres","Ombros","Halteres",3,"10 a 12"],
+["Elevação Lateral","Ombros","Halteres",3,"12 a 15"],
+["Prancha lateral","Abdominal","Peso corporal",3,"30 a 45 s por lado"]
+]],
+["Quarta-feira","Treino 3: Posteriores + Glúteos","Posteriores + Glúteos",[
+["Stiff","Posteriores","Barra ou halteres",3,"10 a 12"],
+["Mesa Flexora","Posteriores","Máquina",3,"12 a 15"],
+["Flexora Sentada","Posteriores","Máquina",3,"12 a 15"],
+["Elevação Pélvica","Glúteos","Barra ou máquina",3,"10 a 12"],
+["Coice no Cabo","Glúteos","Cabo",3,"12 a 15"],
+["Panturrilha em Pé","Panturrilhas","Máquina",4,"15 a 20"],
+["Abdominal Elevação de Pernas no Solo","Abdominal","Peso corporal",3,"12 a 15"]
+]],
+["Quinta-feira","Treino 4: Tríceps + Peito + Bíceps","Tríceps + Peito + Bíceps",[
+["Supino Inclinado","Peito","Halteres ou máquina",3,"10 a 12"],
+["Voador","Peito","Máquina",3,"12 a 15"],
+["Tríceps na Polia","Tríceps","Polia",3,"10 a 12"],
+["Tríceps Francês","Tríceps","Halter",3,"10 a 12"],
+["Rosca Direta","Bíceps","Barra",3,"10 a 12"],
+["Rosca Martelo","Bíceps","Halteres",3,"10 a 12"],
+["Abdominal Bicicleta","Abdominal","Peso corporal",3,"30 a 45 s por lado"]
+]],
+["Sexta-feira","Treino 5: Pernas Completas","Pernas completas",[
+["Agachamento Smith","Quadríceps/Glúteos","Smith",3,"10 a 12"],
+["Afundo","Quadríceps/Glúteos","Peso livre",3,"10 a 12"],
+["Prensa Unilateral","Quadríceps","Leg press",3,"10 a 12"],
+["Flexora Sentada","Posteriores","Máquina",3,"12 a 15"],
+["Agachamento Sumô","Glúteos/Adutores","Peso livre",3,"10 a 12"],
+["Cadeira Abdutora","Glúteos/Abdutores","Máquina",3,"15 a 20"],
+["Abdominal Crunch","Abdominal","Peso corporal",3,"20 a 30"]
+]],
+["Sábado","Treino 6: Superiores Completos","Superiores completos",[
+["Remada Baixa","Costas","Cabo",3,"10 a 12"],
+["Pulldown Neutro","Costas","Polia",3,"12 a 15"],
+["Crucifixo","Peito","Halteres",3,"12 a 15"],
+["Elevação Lateral","Ombros","Halteres",3,"12 a 15"],
+["Elevação Frontal","Ombros","Halteres",3,"12 a 15"],
+["Rosca Concentrada","Bíceps","Halter",3,"10 a 12"],
+["Tríceps Coice","Tríceps","Halter",3,"12 a 15"],
+["Abdominal Escalada","Abdominal","Peso corporal",3,"30 a 45 s"]
+]],
 ["Domingo","Descanso / Recuperação","Recuperação",[]]
 ];
 
@@ -2627,6 +2671,44 @@ function bindCloud(){
 
 const DUMBBELL='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>';
 
+
+/* Atualização da ficha v16 sem apagar histórico, água, peso ou medidas */
+async function migrateWorkoutPlanV16(){
+    const version=16;
+    const savedVersion=await idbGet("workout_plan_version");
+    if(savedVersion>=version)return;
+
+    const old=state.workouts||[];
+    const byName=new Map();
+    old.forEach(w=>(w.exercises||[]).forEach(e=>{
+        const k=String(e.name||"").trim().toLowerCase();
+        if(k)byName.set(k,e);
+    }));
+
+    const updated=seed.map((w,wi)=>({
+        id:"w"+wi,
+        day:w[0],
+        title:w[1],
+        muscle:w[2],
+        exercises:w[3].map((e,i)=>{
+            const previous=byName.get(e[0].trim().toLowerCase());
+            return {
+                id:previous?.id||("e"+wi+"_"+i),
+                name:e[0],muscle:e[1],equipment:e[2],sets:e[3],reps:e[4],
+                favorite:!!previous?.favorite,custom:false
+            };
+        })
+    }));
+
+    state.workouts=updated;
+    ownState=state;
+    fichaSig=fsig(updated);
+    await idbPut("shared_workouts",updated);
+    await idbPut("state_"+activeProfile,state);
+    await idbPut("ficha_at",Date.now());
+    await idbPut("workout_plan_version",version);
+}
+
 /* INICIALIZAÇÃO DO APLICATIVO */
 
 (async()=>{
@@ -2659,6 +2741,7 @@ const DUMBBELL='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stro
     }
 
     ensureState();
+    try{await migrateWorkoutPlanV16();}catch(e){console.error("Falha ao atualizar a ficha:",e);}
 
     timer.seconds=timer.left=state.prefs.rest||60;
 
