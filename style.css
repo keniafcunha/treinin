@@ -186,3 +186,18 @@ body.viewing .meas-item .soft{display:none!important}
 .pr b{display:block;font-size:14px}.pr span{font-size:11px;color:var(--muted)}.pr-d{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
 .pr-d i{display:block;font-style:normal;font-size:9px;font-weight:800;color:#fff;background:#e3a03a;border-radius:6px;padding:2px 6px;margin-top:3px}
 #progressChart,#chWeekly,#chVolume{display:block;width:100%}
+
+/* ===== meta de peso / vários exercícios ===== */
+.kpi.wide{grid-column:1/-1}
+.kpi.goal strong{font-size:30px}.kpi .gst,.gst{display:block;font-weight:800;font-size:14px;margin:6px 0 2px;color:var(--muted)}.gst.up{color:#2f8f5b}.gst.dn{color:#c0556f}
+.goalrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.goalrow:last-child{border:0}
+.goalrow b{display:block;font-size:13px}.goalrow span{font-size:11px;color:var(--muted)}.goalrow .gst{margin:0;white-space:nowrap}
+.exchips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.exchip{background:#fff;border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:8px 12px;font-size:12px;font-weight:700}
+.exchip.on{background:var(--soft);color:var(--deeper);border-color:var(--pink)}
+.selected{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.selchip{display:inline-flex;align-items:center;gap:6px;background:var(--softer);border:2px solid var(--c);border-radius:20px;padding:4px 4px 4px 10px;font-size:12px;font-weight:700}
+.selchip i{width:10px;height:10px;border-radius:50%;background:var(--c)}.selchip button{background:transparent;color:var(--muted);font-size:17px;line-height:1;padding:0 6px}
+
+#chGoal{display:block;width:100%}
+.goal-leg{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px!important;font-size:11px}.goal-leg i{display:inline-block;width:12px;height:12px;border-radius:4px}
