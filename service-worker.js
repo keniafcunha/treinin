@@ -1,5 +1,5 @@
 /* Troque o número da versão sempre que atualizar os arquivos do app */
-const CACHE="meu-treino-v15";
+const CACHE="meu-treino-v16";
 const ASSETS=["./","index.html","style.css","script.js","manifest.json","icon-192.png","icon-512.png"];
 
 self.addEventListener("install",e=>{
