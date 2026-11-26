@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#d878a5"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Meu Treino">
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=13">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="style.css?v=15">
 <title>Meu Treino • Fitness</title>
 </head>
 <body>
@@ -92,15 +92,17 @@
 <div class="chips" id="progPeriod"><button type="button" data-p="4" class="on">4 semanas</button><button type="button" data-p="12">12 semanas</button><button type="button" data-p="26">6 meses</button><button type="button" data-p="all">Tudo</button></div>
 <h3 class="prog-h">Alertas e insights</h3><div id="progAlerts"></div>
 <h3 class="prog-h">Indicadores do período</h3><div class="kpis" id="progKpis"></div>
+<div class="chart-card"><h3>Metas semanais de peso</h3><p class="muted">Semana de quinta a quarta • meta: 1,5 kg a menos que o peso registrado na quinta</p><div id="progGoals"></div></div>
 <div class="chart-card"><h3>Constância</h3><p class="muted">Últimas 12 semanas, dia a dia</p><div class="heat-wrap" id="progHeat"></div><p class="muted heat-leg"><i class="hc l2"></i> treino completo <i class="hc l1"></i> parcial <i class="hc l0"></i> sem treino</p></div>
 <div class="chart-card"><h3>Treinos por semana</h3><p class="muted">Concluídos (colunas) e parciais (claro) × meta do plano</p><canvas id="chWeekly" height="190"></canvas></div>
-<div class="chart-card"><h3>Volume semanal</h3><p class="muted">Soma de carga × repetições (kg)</p><canvas id="chVolume" height="190"></canvas></div>
+<div class="chart-card"><h3>Meta de peso por semana</h3><p class="muted">Quanto você perdeu em cada semana (quinta a quarta) × meta de 1,5 kg. A última coluna é a semana atual.</p><canvas id="chGoal" height="200"></canvas><p class="muted goal-leg"><i style="background:#c0556f"></i> não cumprida <i style="background:#2f8f5b"></i> cumprida <i style="background:#3f74bf"></i> superada <i style="background:#cfc3de"></i> sem registro</p></div>
 <div class="chart-card"><h3>Séries por grupo muscular</h3><p class="muted">Média por semana. Faixa de referência: 10 a 20 séries.</p><div id="progMuscle"></div></div>
 <div class="chart-card"><h3>Recordes recentes</h3><div id="progPRs"></div></div>
-<div class="chart-card"><h3>Evolução por exercício</h3>
-<label class="field-label">Treino do dia</label><select id="progressGroup"></select><label class="field-label">Exercício</label><select id="progressExercise"></select>
-<div class="chips" id="progMetric"><button type="button" data-m="carga" class="on">Carga</button><button type="button" data-m="rm">1RM estimado</button><button type="button" data-m="vol">Volume</button></div>
-<div class="wchart-wrap" id="chWrap"><canvas id="progressChart" height="220"></canvas></div><p id="chartNote" class="muted"></p></div>
+<div class="chart-card"><h3>Evolução por exercício</h3><p class="muted">Compare até 5 exercícios no mesmo gráfico (ex.: Leg Press e Agachamento).</p>
+<div class="selected" id="exSelected"></div>
+<label class="field-label">Treino do dia (escolha os exercícios abaixo)</label><select id="progressGroup"></select>
+<div class="exchips" id="exChips"></div>
+<div class="wchart-wrap" id="chWrap"><canvas id="progressChart" height="230"></canvas></div><p id="chartNote" class="muted"></p></div>
 </section>
 <section id="session" class="page session-page"><div class="session-top"><button class="back" id="exitSession">‹</button><div><small id="sessionDay">TREINO</small><h2 id="sessionTitle">Treino</h2></div><button class="round" id="sessionTimer">⏱</button></div><div class="progress-track"><div id="sessionProgress"></div></div><p class="muted" id="sessionCount"></p><div id="exerciseSession"></div><div class="session-nav"><button class="soft" id="prevExercise">← Anterior</button><button class="primary" id="nextExercise">Próximo →</button></div></section>
 <section id="timerModal" class="modal hidden"><div class="modal-card"><button class="close" id="closeTimer">×</button><small>DESCANSO</small><div class="timer" id="timerDisplay">01:00</div><div class="timer-presets"><button data-time="30">30s</button><button data-time="45">45s</button><button data-time="60">60s</button><button data-time="90">90s</button><button data-time="120">120s</button></div><div class="timer-controls"><button class="soft" id="timerMinus">−15s</button><button class="primary" id="timerStart">Iniciar</button><button class="soft" id="timerPlus">＋15s</button></div><button class="textbtn" id="timerReset">Reiniciar</button><label class="auto"><input type="checkbox" id="autoRest"> Iniciar descanso ao concluir série</label></div></section>
@@ -123,5 +125,5 @@
   </div>
 </section>
 <div id="toast" role="status"></div>
-<script src="script.js?v=13"></script>
+<script src="script.js?v=15"></script>
 </body></html>
