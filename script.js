@@ -563,15 +563,15 @@ function deleteHistory(id){
 
 function renderProgress(){
     document.querySelectorAll("#progPeriod button").forEach(b=>b.classList.toggle("on",b.dataset.p===progPeriod));
-    document.querySelectorAll("#progMetric button").forEach(b=>b.classList.toggle("on",b.dataset.m===progMetric));
 
     const win=progWindow(),W=aggregate(win.start,win.weeks);
 
     renderAlerts();
     renderKpis(win,W);
+    renderGoals();
     renderHeat();
     drawWeeklyChart(W);
-    drawVolumeChart(W);
+    drawGoalChart(win);
     renderMuscle(win);
     renderPRs();
 
@@ -589,7 +589,7 @@ function renderProgress(){
 }
 
 /* ----- utilidades ----- */
-let progPeriod="4",progMetric="carga",progressGroups={};
+let progPeriod="4",progressGroups={},progSel=[],progSelInit=false;
 
 const wlabel=t=>String(t||"Outros").replace(/^\s*Treino\s*\d+\s*[:\-–—]\s*/i,"").trim()||"Outros";
 const num=v=>{const n=parseFloat(String(v).replace(",","."));return Number.isFinite(n)?n:0;};
@@ -795,6 +795,80 @@ function deltaTxt(cur,prev,unit){
     return `<em class="${p>0?"up":"dn"}">${p>0?"▲":"▼"} ${Math.abs(p)}%${unit||""} vs período anterior</em>`;
 }
 
+/* ----- meta semanal de peso (quinta -> quarta; -1,5 kg por semana) ----- */
+const WEEK_LOSS=1.5;
+
+function thuStart(d){
+    const x=new Date(d);x.setHours(0,0,0,0);
+    x.setDate(x.getDate()-((x.getDay()-4+7)%7));
+    return x;
+}
+
+function weekGoal(thu){
+    const keys=Object.keys(state.weight||{}).sort(),tk=waterKey(thu),
+        end=new Date(thu);
+    end.setDate(end.getDate()+6);
+
+    let bk=keys.includes(tk)?tk:null,approx=false;
+    if(!bk){
+        const prev=keys.filter(k=>k<tk&&(thu-keyToDate(k))/86400000<=6).pop();
+        if(prev){bk=prev;approx=true;}
+    }
+    if(!bk)return {thu,end,none:true};
+
+    const base=state.weight[bk],target=Math.round((base-WEEK_LOSS)*10)/10,
+        ek=waterKey(end),inWin=keys.filter(k=>k>tk&&k<=ek),
+        cur=inWin.length?state.weight[inWin[inWin.length-1]]:null,
+        loss=cur==null?null:Math.round((base-cur)*10)/10,
+        today=new Date();today.setHours(0,0,0,0);
+
+    let st="wait";
+    if(loss!=null)st=loss>WEEK_LOSS+1e-9?"over":loss>=WEEK_LOSS-1e-9?"hit":"miss";
+
+    return {thu,end,base,bk,approx,target,cur,loss,st,open:end>=today};
+}
+
+const goalLabel={
+    miss:["Meta não atingida","✕"],
+    hit:["Meta atingida","✓"],
+    over:["Meta superada 🎉","★"],
+    wait:["Aguardando novo registro","…"]
+};
+
+function goalSub(g){
+    if(g.loss==null)return "Registre seu peso ao longo da semana para acompanhar.";
+    if(g.loss<0)return `Subiu ${fmt1(Math.abs(g.loss))} kg (peso atual ${fmt1(g.cur)} kg).`;
+    if(g.st==="miss")return `Perdeu ${fmt1(g.loss)} kg de ${fmt1(WEEK_LOSS)} • faltam ${fmt1(WEEK_LOSS-g.loss)} kg (atual ${fmt1(g.cur)} kg).`;
+    if(g.st==="over")return `Perdeu ${fmt1(g.loss)} kg • ${fmt1(g.loss-WEEK_LOSS)} kg além da meta (atual ${fmt1(g.cur)} kg).`;
+    return `Perdeu ${fmt1(g.loss)} kg (atual ${fmt1(g.cur)} kg).`;
+}
+
+function goalCard(){
+    const g=weekGoal(thuStart(new Date()));
+    if(g.none){
+        return `<article class="kpi wide"><span class="kl">Meta de peso da semana (quinta a quarta)</span><strong>—</strong><em>Registre seu peso na quinta-feira para definir a meta da semana (${fmt1(WEEK_LOSS)} kg a menos).</em></article>`;
+    }
+    const lb=goalLabel[g.st],cls=g.st==="miss"?"dn":(g.st==="hit"||g.st==="over")?"up":"";
+    return `<article class="kpi wide goal"><span class="kl">Meta de peso da semana • ${fmtDM(g.thu)} a ${fmtDM(g.end)} (qui a qua)</span>
+        <strong>${fmt1(g.target)} kg</strong>
+        <em>Base: ${fmt1(g.base)} kg ${g.approx?"(último registro antes da quinta)":"(registro de quinta)"} − ${fmt1(WEEK_LOSS)} kg</em>
+        <b class="gst ${cls}">${lb[1]} ${lb[0]}</b>
+        <em>${goalSub(g)}${g.open?" Semana em andamento, vai até quarta "+fmtDM(g.end)+".":""}</em></article>`;
+}
+
+function renderGoals(){
+    const today=thuStart(new Date());
+    let rows="";
+    for(let i=0;i<6;i++){
+        const t=new Date(today);t.setDate(t.getDate()-7*i);
+        const g=weekGoal(t);
+        if(g.none)continue;
+        const lb=goalLabel[g.st],cls=g.st==="miss"?"dn":(g.st==="hit"||g.st==="over")?"up":"";
+        rows+=`<div class="goalrow"><div><b>${fmtDM(g.thu)} a ${fmtDM(g.end)}</b><span>base ${fmt1(g.base)} • meta ${fmt1(g.target)} • ${g.cur!=null?"final "+fmt1(g.cur):"sem novo registro"}</span></div><div class="gst ${cls}">${lb[1]} ${g.loss!=null?(g.loss>0?"−":g.loss<0?"+":"")+fmt1(Math.abs(g.loss)):""}</div></div>`;
+    }
+    $("progGoals").innerHTML=rows||`<p class="muted">Registre seu peso na quinta-feira (aba Peso) para começar a acompanhar as metas semanais.</p>`;
+}
+
 function renderKpis(win,W){
     const per=plannedPerWeek(),sum=(a,k)=>a.reduce((s,w)=>s+w[k],0),
         plan=a=>a.reduce((s,w)=>s+(w.start.getTime()===win.cur.getTime()?plannedUpToToday():per),0);
@@ -807,17 +881,8 @@ function renderKpis(win,W){
 
     const done=sum(W,"done"),pl=plan(W),adh=pl?Math.min(100,Math.round(done/pl*100)):0,
         padh=P?Math.min(100,Math.round(sum(P,"done")/(per*win.weeks)*100)):null,
-        vol=sum(W,"volume"),sets=sum(W,"sets"),sk=sum(W,"skipped"),
+        sets=sum(W,"sets"),sk=sum(W,"skipped"),
         avgMin=done?Math.round(sum(W,"time")/done/60000):0;
-
-    const wk=Object.keys(state.weight||{}).sort().filter(k=>progPeriod==="all"||keyToDate(k)>=win.start);
-    let pesoV="—",pesoS="Sem registros no período";
-    if(wk.length){
-        const a=state.weight[wk[0]],b=state.weight[wk[wk.length-1]],goal=state.prefs.weightGoal;
-        pesoV=fmt1(b)+" kg";
-        pesoS=wk.length>1?`${b-a<0?"▼":b-a>0?"▲":"="} ${fmt1(Math.abs(b-a))} kg no período`:"Registre mais vezes para ver a tendência";
-        if(goal)pesoS+=` • meta ${fmt1(goal)} kg`;
-    }
 
     const today=new Date();today.setHours(0,0,0,0);
     let ws=0;
@@ -827,15 +892,13 @@ function renderKpis(win,W){
     const K=[
         ["Treinos concluídos",done,deltaTxt(done,P?sum(P,"done"):null)],
         ["Aderência ao plano",adh+"%",P?`<em class="${adh>=padh?"up":"dn"}">${adh>=padh?"▲":"▼"} ${Math.abs(adh-padh)} pontos vs anterior</em>`:`<em>${done} de ${pl} planejados</em>`],
-        ["Volume total",fmtVol(vol),deltaTxt(vol,P?sum(P,"volume"):null)],
         ["Séries feitas",sets,sk?`<em class="dn">✕ ${sk} não realizada(s)</em>`:deltaTxt(sets,P?sum(P,"sets"):null)],
         ["Tempo médio / treino",avgMin?avgMin+" min":"—","<em>só treinos concluídos</em>"],
         ["Sequência",weeklyStreak()+" sem.","<em>semanas com 3+ treinos</em>"],
-        ["Peso",pesoV,`<em>${pesoS}</em>`],
         ["Água (média 7 dias)",fmt1(ws/7/1000)+" L",`<em>meta ${fmt1(goalW/1000)} L/dia</em>`]
     ];
 
-    $("progKpis").innerHTML=K.map(k=>`<article class="kpi"><span class="kl">${k[0]}</span><strong>${k[1]}</strong>${k[2]}</article>`).join("");
+    $("progKpis").innerHTML=goalCard()+K.map(k=>`<article class="kpi"><span class="kl">${k[0]}</span><strong>${k[1]}</strong>${k[2]}</article>`).join("");
 }
 
 /* ----- mapa de constância (12 semanas) ----- */
@@ -906,40 +969,56 @@ function drawWeeklyChart(W){
     weekLabels(W,x,pad,bw,H);
 }
 
-function drawVolumeChart(W){
-    const w=$("chVolume").clientWidth||320,H=190,x=cvSize("chVolume",w,H),th=themeNow(),
-        pad=40,top=20,base=H-24,vals=W.map(a=>a.volume),mx=Math.max(...vals);
+function drawGoalChart(win){
+    const w=$("chGoal").clientWidth||320,H=200,x=cvSize("chGoal",w,H),th=themeNow(),
+        pad=36,top=24,bottom=H-26,n=Math.max(4,win.weeks),t0=thuStart(new Date());
 
-    if(!mx){
+    const G=Array.from({length:n},(_,i)=>{
+        const t=new Date(t0);t.setDate(t.getDate()-7*(n-1-i));
+        return weekGoal(t);
+    });
+
+    if(!G.some(g=>!g.none&&g.loss!=null)){
         x.fillStyle="#887780";x.font="13px sans-serif";x.textAlign="center";
-        x.fillText("Registre cargas e repetições para ver o volume.",w/2,H/2);
+        x.fillText("Registre seu peso na quinta e depois na semana",w/2,H/2-6);
+        x.fillText("para ver se a meta foi cumprida.",w/2,H/2+14);
         return;
     }
 
-    const y=v=>base-v/(mx*1.15)*(base-top),bw=(w-pad-8)/W.length,
-        px=i=>pad+i*bw+bw/2;
+    const vals=G.map(g=>g.loss==null?0:g.loss),
+        mx=Math.max(WEEK_LOSS,...vals)+0.6,mn=Math.min(0,...vals)-(Math.min(0,...vals)<0?0.4:0),
+        y=v=>bottom-(v-mn)/(mx-mn)*(bottom-top),bw=(w-pad-6)/n,
+        col={miss:"#c0556f",hit:"#2f8f5b",over:"#3f74bf",wait:"#cfc3de"};
 
     x.strokeStyle=th.border;x.lineWidth=1;
-    x.beginPath();x.moveTo(pad,top-6);x.lineTo(pad,base);x.lineTo(w-4,base);x.stroke();
+    x.beginPath();x.moveTo(pad,top-8);x.lineTo(pad,bottom);x.stroke();
+    x.beginPath();x.moveTo(pad,y(0));x.lineTo(w-4,y(0));x.stroke();
+
     x.fillStyle="#887780";x.font="10px sans-serif";x.textAlign="right";
-    x.fillText("0",pad-5,base);x.fillText(fmtInt(mx),pad-5,y(mx)+3);
+    x.fillText("0",pad-5,y(0)+3);
 
-    x.beginPath();x.moveTo(px(0),base);
-    vals.forEach((v,i)=>x.lineTo(px(i),y(v)));
-    x.lineTo(px(vals.length-1),base);x.closePath();
-    x.fillStyle=th.secondary+"55";x.fill();
+    x.setLineDash([4,4]);x.strokeStyle=th.dark;x.beginPath();
+    x.moveTo(pad,y(WEEK_LOSS));x.lineTo(w-4,y(WEEK_LOSS));x.stroke();x.setLineDash([]);
+    x.fillStyle=th.dark;x.textAlign="left";
+    x.fillText("meta "+fmt1(WEEK_LOSS)+" kg",pad+4,y(WEEK_LOSS)-4);
 
-    x.strokeStyle=th.dark;x.lineWidth=3;x.lineJoin="round";x.beginPath();
-    vals.forEach((v,i)=>i?x.lineTo(px(i),y(v)):x.moveTo(px(i),y(v)));x.stroke();
-
-    vals.forEach((v,i)=>{
-        x.fillStyle=th.dark;x.beginPath();x.arc(px(i),y(v),W.length>14?2.5:4.5,0,7);x.fill();
+    G.forEach((g,i)=>{
+        const bx=pad+i*bw+bw*0.15,bwid=bw*0.7,v=g.loss==null?0:g.loss,yy=y(v);
+        x.fillStyle=g.none?"transparent":col[g.st];
+        if(g.none||g.loss==null){
+            if(!g.none)x.fillRect(bx,y(0)-2,bwid,3);
+        }else{
+            x.fillRect(bx,Math.min(y(0),yy),bwid,Math.max(2,Math.abs(y(0)-yy)));
+            if(bw>=22){
+                x.fillStyle="#332a30";x.textAlign="center";x.font="10px sans-serif";
+                x.fillText((v>0?"−":v<0?"+":"")+fmt1(Math.abs(v)),bx+bwid/2,v>=0?yy-4:yy+12);
+            }
+        }
     });
 
-    const li=vals.length-1;
-    x.fillStyle="#332a30";x.textAlign="center";x.fillText(fmtInt(vals[li]),Math.min(px(li),w-18),y(vals[li])-9);
-
-    weekLabels(W,x,pad,bw,H);
+    const k=Math.ceil(n/6);
+    x.fillStyle="#887780";x.font="10px sans-serif";x.textAlign="center";
+    G.forEach((g,i)=>{if(i%k===0||i===n-1)x.fillText(fmtDM(g.thu),pad+i*bw+bw/2,H-8);});
 }
 
 /* ----- séries por grupo muscular ----- */
@@ -968,8 +1047,8 @@ function renderPRs(){
     const best={};
     state.history.forEach(h=>(h.sets||[]).forEach(s=>{
         if(!s.done||num(s.weight)<=0)return;
-        const rm=est1rm(num(s.weight),num(s.reps)),b=best[s.name];
-        if(!b||rm>b.rm)best[s.name]={name:s.name,rm,w:num(s.weight),r:num(s.reps),date:hDate(h)};
+        const w=num(s.weight),r=num(s.reps),b=best[s.name];
+        if(!b||w>b.w||(w===b.w&&r>b.r))best[s.name]={name:s.name,w,r,date:hDate(h)};
     }));
 
     const list=Object.values(best).sort((a,b)=>b.date-a.date).slice(0,8);
@@ -981,22 +1060,54 @@ function renderPRs(){
 
     const now=Date.now();
     $("progPRs").innerHTML=list.map(p=>
-        `<div class="pr"><div><b>${esc(p.name)}</b><span>${fmt1(p.w)} kg${p.r?` × ${p.r}`:""}${p.r?` • 1RM est. ≈ ${fmt1(p.rm)} kg`:""}</span></div>
+        `<div class="pr"><div><b>${esc(p.name)}</b><span>${fmt1(p.w)} kg${p.r?` × ${p.r}`:""}</span></div>
         <div class="pr-d">${fmtDM(p.date)}${now-p.date<14*86400000?"<i>NOVO</i>":""}</div></div>`
-    ).join("")+`<p class="muted" style="margin:8px 0 0">1RM estimado: fórmula de Epley (carga × (1 + reps/30)).</p>`;
+    ).join("");
 }
 
-/* ----- evolução por exercício ----- */
-function fillProgressExercises(){
-    const names=[...(progressGroups[$("progressGroup").value]||[])],
-        old=$("progressExercise").value;
+/* ----- evolução por exercício (vários no mesmo gráfico) ----- */
+const PCOL=()=>[themeNow().dark,"#e3a03a","#2f8f5b","#5a8fd6","#c0556f"];
 
-    $("progressExercise").innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join("");
-    if(names.includes(old))$("progressExercise").value=old;
+function fillProgressExercises(){
+    const names=[...(progressGroups[$("progressGroup").value]||[])];
+    if(!progSelInit&&names.length){progSel=[names[0]];progSelInit=true;}
+    renderExChips(names);
     drawChart();
 }
 
+function renderExChips(names){
+    const cols=PCOL();
+    $("exSelected").innerHTML=progSel.length?progSel.map((n,i)=>
+        `<span class="selchip" style="--c:${cols[i%5]}"><i></i>${esc(n)}<button type="button" data-rm="${esc(n)}" aria-label="Remover">×</button></span>`
+    ).join(""):`<span class="muted">Nenhum exercício escolhido.</span>`;
+
+    $("exChips").innerHTML=names.map(n=>
+        `<button type="button" class="exchip ${progSel.includes(n)?"on":""}" data-n="${esc(n)}">${esc(n)}</button>`
+    ).join("");
+}
+
 $("progressGroup").onchange=fillProgressExercises;
+
+$("exChips").onclick=e=>{
+    const b=e.target.closest("[data-n]");
+    if(!b)return;
+    const n=b.dataset.n;
+    if(progSel.includes(n))progSel=progSel.filter(x=>x!==n);
+    else{
+        if(progSel.length>=5){toast("Máximo de 5 exercícios no mesmo gráfico");return;}
+        progSel.push(n);
+    }
+    progSelInit=true;
+    fillProgressExercises();
+};
+
+$("exSelected").onclick=e=>{
+    const b=e.target.closest("[data-rm]");
+    if(!b)return;
+    progSel=progSel.filter(x=>x!==b.dataset.rm);
+    progSelInit=true;
+    fillProgressExercises();
+};
 
 $("progPeriod").onclick=e=>{
     const b=e.target.closest("button");
@@ -1005,72 +1116,69 @@ $("progPeriod").onclick=e=>{
     renderProgress();
 };
 
-$("progMetric").onclick=e=>{
-    const b=e.target.closest("button");
-    if(!b)return;
-    progMetric=b.dataset.m;
-    document.querySelectorAll("#progMetric button").forEach(x=>x.classList.toggle("on",x===b));
-    drawChart();
-};
-
 function drawChart(){
-    const name=$("progressExercise").value,th=themeNow(),wrap=$("chWrap"),
-        key={carga:"maxW",rm:"rm",vol:"vol"}[progMetric],
-        label={carga:"Carga máxima",rm:"1RM estimado",vol:"Volume"}[progMetric],
-        all=name?exSessions(name):[];
+    const th=themeNow(),wrap=$("chWrap"),cols=PCOL(),win=progWindow();
 
-    let run=-Infinity;
-    all.forEach((s,i)=>{s.pr=i>0&&s[key]>run+1e-9;run=Math.max(run,s[key]);});
+    const series=progSel.map((name,i)=>{
+        const all=exSessions(name);
+        let run=-Infinity;
+        all.forEach((s,k)=>{s.pr=k>0&&s.maxW>run+1e-9;run=Math.max(run,s.maxW);});
+        const pts=progPeriod==="all"?all:all.filter(s=>s.date>=win.start);
+        return {name,col:cols[i%5],all,pts,i};
+    });
 
-    const win=progWindow(),
-        pts=progPeriod==="all"?all:all.filter(s=>s.date>=win.start),
-        step=50,pad=38,H=220,
-        W=Math.max(wrap.clientWidth||300,pad+pts.length*step+10),
+    const dayKeys=[...new Set(series.flatMap(s=>s.pts.map(p=>waterKey(p.date))))].sort(),
+        step=50,pad=38,H=230,
+        W=Math.max(wrap.clientWidth||300,pad+dayKeys.length*step+10),
         x=cvSize("progressChart",W,H);
 
-    if(!pts.length){
-        $("chartNote").textContent=name?"Sem cargas registradas neste período para este exercício.":"Escolha um exercício.";
+    if(!dayKeys.length){
+        $("chartNote").textContent=progSel.length?"Sem cargas registradas neste período para o(s) exercício(s) escolhido(s).":"Escolha um ou mais exercícios acima.";
         return;
     }
 
-    const vs=pts.map(p=>p[key]),mn=Math.min(...vs),mx=Math.max(...vs),sp=(mx-mn)||Math.max(2,mx*0.1),
-        lo=Math.max(0,mn-sp*0.3),hi=mx+sp*0.3,top=22,base=H-34,
-        y=v=>base-(v-lo)/(hi-lo)*(base-top),px=i=>pad+step*(i+.5);
+    const vs=series.flatMap(s=>s.pts.map(p=>p.maxW)),mn=Math.min(...vs),mx=Math.max(...vs),
+        sp=(mx-mn)||Math.max(2,mx*0.1),lo=Math.max(0,mn-sp*0.3),hi=mx+sp*0.3,
+        top=22,base=H-34,y=v=>base-(v-lo)/(hi-lo)*(base-top),
+        px=k=>pad+step*(dayKeys.indexOf(k)+.5);
 
     x.strokeStyle=th.border;x.lineWidth=1;
     x.beginPath();x.moveTo(pad,top-8);x.lineTo(pad,base);x.lineTo(W-6,base);x.stroke();
 
-    const f=v=>progMetric==="vol"?fmtInt(v):fmt1(v);
     x.font="10px sans-serif";x.fillStyle="#887780";x.textAlign="right";
-    x.fillText(f(hi),pad-4,top);x.fillText(f(lo),pad-4,base);
+    x.fillText(fmt1(hi),pad-4,top);x.fillText(fmt1(lo),pad-4,base);
     x.textAlign="center";
-    pts.forEach((p,i)=>x.fillText(fmtDM(p.date),px(i),H-14));
+    dayKeys.forEach(k=>x.fillText(fmtDM(keyToDate(k)),px(k),H-14));
 
-    x.strokeStyle=th.dark;x.lineWidth=3;x.lineJoin="round";x.beginPath();
-    pts.forEach((p,i)=>i?x.lineTo(px(i),y(p[key])):x.moveTo(px(i),y(p[key])));x.stroke();
-
-    pts.forEach((p,i)=>{
-        if(p.pr){x.strokeStyle="#e3a03a";x.lineWidth=3;x.beginPath();x.arc(px(i),y(p[key]),8,0,7);x.stroke();}
-        x.fillStyle=th.dark;x.beginPath();x.arc(px(i),y(p[key]),4.5,0,7);x.fill();
-        x.fillStyle="#332a30";x.fillText(f(p[key]),px(i),y(p[key])-13);
+    series.forEach(s=>{
+        x.strokeStyle=s.col;x.lineWidth=3;x.lineJoin="round";x.beginPath();
+        s.pts.forEach((p,i)=>{const k=waterKey(p.date);i?x.lineTo(px(k),y(p.maxW)):x.moveTo(px(k),y(p.maxW));});
+        x.stroke();
     });
+
+    series.forEach(s=>s.pts.forEach(p=>{
+        const k=waterKey(p.date),cx=px(k),cy=y(p.maxW);
+        if(p.pr){x.strokeStyle="#e3a03a";x.lineWidth=2.5;x.beginPath();x.arc(cx,cy,8,0,7);x.stroke();}
+        x.fillStyle=s.col;x.beginPath();x.arc(cx,cy,4.5,0,7);x.fill();
+        x.fillStyle="#332a30";x.fillText(fmt1(p.maxW),cx,s.i%2===0?cy-12:cy+18);
+    }));
 
     wrap.scrollLeft=wrap.scrollWidth;
 
-    /* leitura automática */
-    const first=vs[0],lastV=vs[vs.length-1],d=lastV-first,
-        parts=[`${label}: ${f(first)} → ${f(lastV)} kg (${d>0?"+":d<0?"−":""}${f(Math.abs(d))}) em ${pts.length} treino(s)`];
-
-    const n=all.length;
-    if(n>=2){
-        const S=all;let r=-1,idx=-1;
-        S.forEach((s,i)=>{if(s.maxW>r){r=s.maxW;idx=i;}});
-        const st=n-1-idx;
-        if(S[n-1].pr&&progMetric!=="vol")parts.push("🏆 último treino foi recorde");
-        if(n>=4&&st>=3)parts.push(`⚠ sem aumento de carga há ${st} treinos`);
-        if(S[n-1].maxW<S[n-2].maxW*0.9)parts.push("↘ carga caiu no último treino");
-    }
-    $("chartNote").textContent=parts.join(" • ")+"  (anel dourado = recorde)";
+    /* leitura automática de cada exercício */
+    $("chartNote").innerHTML=series.map(s=>{
+        if(!s.pts.length)return `<b>${esc(s.name)}</b>: sem cargas no período`;
+        const f=s.pts[0].maxW,l=s.pts[s.pts.length-1].maxW,d=l-f,n=s.all.length,parts=[];
+        parts.push(`${fmt1(f)} → ${fmt1(l)} kg (${d>0?"+":d<0?"−":""}${fmt1(Math.abs(d))})`);
+        if(n>=2){
+            let r=-1,idx=-1;
+            s.all.forEach((q,i)=>{if(q.maxW>r){r=q.maxW;idx=i;}});
+            if(s.all[n-1].pr)parts.push("🏆 último treino foi recorde");
+            if(n>=4&&n-1-idx>=3)parts.push(`⚠ sem aumento há ${n-1-idx} treinos`);
+            if(s.all[n-1].maxW<s.all[n-2].maxW*0.9)parts.push("↘ carga caiu no último treino");
+        }
+        return `<b style="color:${s.col}">${esc(s.name)}</b>: ${parts.join(" • ")}`;
+    }).join("<br>")+`<br><span style="font-size:11px">Anel dourado = recorde de carga.</span>`;
 }
 
 /* =========================================
@@ -1783,7 +1891,6 @@ $("exDelete").onclick=()=>{
 
 /* GRÁFICO */
 
-$("progressExercise").onchange=drawChart;
 
 /* EXPORTAR BACKUP */
 
